@@ -1,0 +1,115 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Difficulty {
+  easy 
+  medium
+  hard
+}
+
+enum QuestionType {
+  single_choice
+  multiple_choice
+  free_text
+}
+
+model User {
+  user_id Int @id @default(autoincrement())
+  username String @unique @db.VarChar(32)
+  email String @unique @db.VarChar(255)
+  password_hash String @db.VarChar(255)
+  avatar_url String? @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamptz()
+  is_active Boolean @default(true)
+  quizzes Quiz[]
+  reviews Review[]
+  quiz_attempts QuizAttempt[]
+}
+
+model Quiz {
+  quiz_id Int @id @default(autoincrement())
+  title String @db.VarChar(255)
+  description String? @db.Text()
+  created_at DateTime @default(now()) @db.Timestamptz()
+  updated_at DateTime @updatedAt @db.Timestamptz()
+  time_limit Int?
+  attempt_limit Int? @db.SmallInt()
+  difficulty Difficulty?
+  is_active Boolean @default(true)
+  author User @relation(fields: [author_id], references: [user_id], onDelete: Cascade)
+  author_id Int
+  questions Question[]
+  reviews Review[]
+  quiz_attempts QuizAttempt[]
+}
+
+model Review {
+  review_id Int @id @default(autoincrement())
+  rating Decimal @db.Decimal(2, 1)
+  review_text String? @db.Text()
+  created_at DateTime @default(now()) @db.Timestamptz()
+  updated_at DateTime @updatedAt @db.Timestamptz()
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  user_id Int
+  quiz Quiz @relation(fields: [quiz_id], references: [quiz_id], onDelete: Cascade)
+  quiz_id Int
+}
+
+model Question {
+  question_id Int @id @default(autoincrement())
+  question_text String @db.Text()
+  question_type QuestionType @default(single_choice)
+  points Int @default(1) @db.SmallInt()
+  is_active Boolean @default(true)
+  quiz Quiz @relation(fields: [quiz_id], references: [quiz_id], onDelete: Cascade)
+  quiz_id Int
+  answer_options AnswerOption[]
+  question_responses QuestionResponse[]
+}
+
+model AnswerOption {
+  answer_option_id Int @id @default(autoincrement())
+  answer_text String @db.Text()
+  is_correct Boolean @default(false)
+  question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  question_id Int
+  selected_answers SelectedAnswer[]
+}
+
+model QuizAttempt {
+  quiz_attempt_id Int @id @default(autoincrement())
+  started_at DateTime @default(now()) @db.Timestamptz()
+  finished_at DateTime? @db.Timestamptz()
+  score Int? @db.SmallInt() 
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  user_id Int
+  quiz Quiz @relation(fields: [quiz_id], references: [quiz_id], onDelete: Cascade)
+  quiz_id Int
+  question_responses QuestionResponse[]
+}
+
+model QuestionResponse {
+  question_response_id Int @id @default(autoincrement())
+  free_text_answer String? @db.Text()
+  earned_points Int? @db.SmallInt()
+  quiz_attempt QuizAttempt @relation(fields: [quiz_attempt_id], references: [quiz_attempt_id], onDelete: Cascade)
+  quiz_attempt_id Int
+  question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  question_id Int
+  selected_answers SelectedAnswer[]
+}
+
+model SelectedAnswer {
+  question_response QuestionResponse @relation(fields: [question_response_id], references: [question_response_id], onDelete: Cascade)
+  question_response_id Int
+  answer_option AnswerOption @relation(fields: [answer_option_id], references: [answer_option_id], onDelete: Cascade)
+  answer_option_id Int
+  @@id([question_response_id, answer_option_id])
+}
