@@ -18,21 +18,31 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
+    "@types/hpp": "^0.2.7",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "dotenv": "^17.2.3",
     "nodemon": "^3.1.11",
     "prisma": "^7.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "body-parser": "^2.2.1",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "pg": "^8.16.3"
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "pg": "^8.16.3",
+    "xss-clean": "^0.1.4"
   }
 }

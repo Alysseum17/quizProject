@@ -1,21 +1,18 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": "./",
     "outDir": "./dist",
-    
-    // 🔥 Налаштування для ES Modules
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  // 👇 ЦЕЙ БЛОК КРИТИЧНО ВАЖЛИВИЙ ДЛЯ РОБОТИ ts-node
   "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "esm": true, 
+    "experimentalSpecifierResolution": "node", 
+    "transpileOnly": true 
   }
 }
