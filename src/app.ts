@@ -1,11 +1,8 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import hpp from 'hpp';
 import cors from 'cors';
-import bodyParser from 'body-parser';
 import compression from 'compression';
-
 export const app = express();
 
 app.enable('trust proxy');

@@ -18,10 +18,10 @@ const server = app.listen(PORT, () => {
 app.get('/', (_req, res) => {
     prisma.user.findMany().then(users => {
         console.log('Users:', users);
+        res.json(users);
     }).catch(err => {
         console.error('Error fetching users:', err);
     });
-    res.send('Hello, World!');
 });
 
 process.on('unhandledRejection', (err:Error) => {
