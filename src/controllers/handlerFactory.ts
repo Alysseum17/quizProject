@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { da } from "zod/locales";
 
 export const getAll =  (model:any) => async (_req:Request, res:Response) => {
     const items = await model.findMany();
@@ -28,4 +29,15 @@ export const deleteOne =  (model:any) => async (req:Request, res:Response) => {
         where: { id: +id },
     });
     res.status(204).send('Item deleted successfully');
+}
+
+export const updateOne =  (model:any, schema:any) => async (req:Request, res:Response) => {
+    const { id } = req.params;
+    const data = schema.parse(req.body);
+    console.log(data);
+    const updatedItem = await model.update({
+        where: { id: +id },
+        data: data
+    });
+    res.status(200).json({ updatedItem });
 }
