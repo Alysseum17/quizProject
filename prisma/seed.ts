@@ -94,41 +94,104 @@ async function main() {
   });
   console.log('Questions created');
 
-  await prisma.answerOption.createMany({
+ await prisma.answerOption.createMany({
     data: [
-      { question_id: 1, answer_text: 'SELECT', is_correct: true }, { question_id: 1, answer_text: 'UPDATE', is_correct: false }, { question_id: 1, answer_text: 'DELETE', is_correct: false },
-      { question_id: 2, answer_text: 'WHERE', is_correct: true }, { question_id: 2, answer_text: 'HAVING', is_correct: true }, { question_id: 2, answer_text: 'ORDER BY', is_correct: false }, { question_id: 2, answer_text: 'GROUP BY', is_correct: false },
-      { question_id: 4, answer_text: '1989', is_correct: false }, { question_id: 4, answer_text: '1991', is_correct: true }, { question_id: 4, answer_text: '1996', is_correct: false },
-      { question_id: 6, answer_text: 'Fyodor Dostoevsky', is_correct: false }, { question_id: 6, answer_text: 'Leo Tolstoy', is_correct: false }, { question_id: 6, answer_text: 'Mikhail Bulgakov', is_correct: true },
-      { question_id: 8, answer_text: 'Nile', is_correct: false }, { question_id: 8, answer_text: 'Amazon', is_correct: true }, { question_id: 8, answer_text: 'Parana', is_correct: true }, { question_id: 8, answer_text: 'Yangtze', is_correct: false },
-      { question_id: 10, answer_text: 'docker run', is_correct: false }, { question_id: 10, answer_text: 'docker build', is_correct: true }, { question_id: 10, answer_text: 'docker pull', is_correct: false },
-      { question_id: 12, answer_text: 'Elephant', is_correct: false }, { question_id: 12, answer_text: 'Blue Whale', is_correct: true }, { question_id: 12, answer_text: 'Giraffe', is_correct: false },
-      { question_id: 14, answer_text: 'O(n)', is_correct: false }, { question_id: 14, answer_text: 'O(n log n)', is_correct: false }, { question_id: 14, answer_text: 'O(n^2)', is_correct: true },
-      { question_id: 16, answer_text: 'Mars', is_correct: false }, { question_id: 16, answer_text: 'Jupiter', is_correct: true }, { question_id: 16, answer_text: 'Saturn', is_correct: true }, { question_id: 16, answer_text: 'Venus', is_correct: false },
-      { question_id: 18, answer_text: 'Traffic allowed', is_correct: false }, { question_id: 18, answer_text: 'Traffic forbidden', is_correct: true }, { question_id: 18, answer_text: 'Get ready to move', is_correct: false },
-      { question_id: 20, answer_text: 'Continue', is_correct: false }, { question_id: 20, answer_text: 'Surrender/Quit', is_correct: true }, { question_id: 20, answer_text: 'Start', is_correct: false },
-      { question_id: 22, answer_text: 'China', is_correct: false }, { question_id: 22, answer_text: 'Japan', is_correct: true }, { question_id: 22, answer_text: 'Turkey', is_correct: false },
-      { question_id: 24, answer_text: 'Pulp Fiction', is_correct: true }, { question_id: 24, answer_text: 'Forrest Gump', is_correct: false }, { question_id: 24, answer_text: 'Reservoir Dogs', is_correct: true }, { question_id: 24, answer_text: 'The Matrix', is_correct: false },
+      { answer_option_id: 1, question_id: 1, answer_text: 'SELECT', is_correct: true },
+      { answer_option_id: 2, question_id: 1, answer_text: 'UPDATE', is_correct: false },
+      { answer_option_id: 3, question_id: 1, answer_text: 'DELETE', is_correct: false },
+      { answer_option_id: 4, question_id: 2, answer_text: 'WHERE', is_correct: true },
+      { answer_option_id: 5, question_id: 2, answer_text: 'HAVING', is_correct: true },
+      { answer_option_id: 6, question_id: 2, answer_text: 'ORDER BY', is_correct: false },
+      { answer_option_id: 7, question_id: 2, answer_text: 'GROUP BY', is_correct: false },
+      { answer_option_id: 8, question_id: 3, answer_text: 'Join', is_correct: true },
+      { answer_option_id: 9, question_id: 4, answer_text: '1989', is_correct: false },
+      { answer_option_id: 10, question_id: 4, answer_text: '1991', is_correct: true }, 
+      { answer_option_id: 11, question_id: 4, answer_text: '1996', is_correct: false },
+      { answer_option_id: 12, question_id: 5, answer_text: 'Ivan Vyhovsky', is_correct: true },
+      { answer_option_id: 13, question_id: 6, answer_text: 'Fyodor Dostoevsky', is_correct: false },
+      { answer_option_id: 14, question_id: 6, answer_text: 'Leo Tolstoy', is_correct: false },
+      { answer_option_id: 15, question_id: 6, answer_text: 'Mikhail Bulgakov', is_correct: true },
+      { answer_option_id: 16, question_id: 7, answer_text: 'Mykola Khvylovy', is_correct: true },
+      { answer_option_id: 17, question_id: 8, answer_text: 'Nile', is_correct: false },
+      { answer_option_id: 18, question_id: 8, answer_text: 'Amazon', is_correct: true },
+      { answer_option_id: 19, question_id: 8, answer_text: 'Parana', is_correct: true },
+      { answer_option_id: 20, question_id: 8, answer_text: 'Yangtze', is_correct: false },
+      { answer_option_id: 21, question_id: 9, answer_text: 'Antarctic Desert', is_correct: true },
+      { answer_option_id: 22, question_id: 10, answer_text: 'docker run', is_correct: false },
+      { answer_option_id: 23, question_id: 10, answer_text: 'docker build', is_correct: true },
+      { answer_option_id: 24, question_id: 10, answer_text: 'docker pull', is_correct: false },
+      { answer_option_id: 25, question_id: 11, answer_text: 'Lightweight executable package', is_correct: true },
+      { answer_option_id: 26, question_id: 12, answer_text: 'Elephant', is_correct: false },
+      { answer_option_id: 27, question_id: 12, answer_text: 'Blue Whale', is_correct: true },
+      { answer_option_id: 28, question_id: 12, answer_text: 'Giraffe', is_correct: false },
+      { answer_option_id: 29, question_id: 13, answer_text: 'Penguin', is_correct: true },
+      { answer_option_id: 30, question_id: 14, answer_text: 'O(n)', is_correct: false },
+      { answer_option_id: 31, question_id: 14, answer_text: 'O(n log n)', is_correct: false },
+      { answer_option_id: 32, question_id: 14, answer_text: 'O(n^2)', is_correct: true },
+      { answer_option_id: 33, question_id: 15, answer_text: 'Function calling itself', is_correct: true },
+      { answer_option_id: 34, question_id: 16, answer_text: 'Mars', is_correct: false },
+      { answer_option_id: 35, question_id: 16, answer_text: 'Jupiter', is_correct: true },
+      { answer_option_id: 36, question_id: 16, answer_text: 'Saturn', is_correct: true },
+      { answer_option_id: 37, question_id: 16, answer_text: 'Venus', is_correct: false },
+      { answer_option_id: 38, question_id: 17, answer_text: 'Alexey Leonov', is_correct: true },
+      { answer_option_id: 39, question_id: 18, answer_text: 'Traffic allowed', is_correct: false },
+      { answer_option_id: 40, question_id: 18, answer_text: 'Traffic forbidden', is_correct: true },
+      { answer_option_id: 41, question_id: 18, answer_text: 'Get ready to move', is_correct: false },
+      { answer_option_id: 42, question_id: 19, answer_text: 'Road with priority', is_correct: true },
+      { answer_option_id: 43, question_id: 20, answer_text: 'Continue', is_correct: false },
+      { answer_option_id: 44, question_id: 20, answer_text: 'Surrender/Quit', is_correct: true },
+      { answer_option_id: 45, question_id: 20, answer_text: 'Start', is_correct: false },
+      { answer_option_id: 46, question_id: 21, answer_text: 'I look forward to meeting you', is_correct: true },
+      { answer_option_id: 47, question_id: 22, answer_text: 'China', is_correct: false },
+      { answer_option_id: 48, question_id: 22, answer_text: 'Japan', is_correct: true },
+      { answer_option_id: 49, question_id: 22, answer_text: 'Turkey', is_correct: false },
+      { answer_option_id: 50, question_id: 23, answer_text: 'Red maple leaf', is_correct: true },
+      { answer_option_id: 51, question_id: 24, answer_text: 'Pulp Fiction', is_correct: true },
+      { answer_option_id: 52, question_id: 24, answer_text: 'Forrest Gump', is_correct: false },
+      { answer_option_id: 53, question_id: 24, answer_text: 'Reservoir Dogs', is_correct: true },
+      { answer_option_id: 54, question_id: 24, answer_text: 'The Matrix', is_correct: false },
+      { answer_option_id: 55, question_id: 25, answer_text: 'The Terminator', is_correct: true },
     ]
   });
   console.log('Answer options created');
 
-  await prisma.quizAttempt.createMany({
+ await prisma.quizAttempt.createMany({
     data: [
-      { user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T17:10:00Z'), finished_at: new Date('2025-10-14T17:18:30Z'), score: 85 },
-      { user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T19:00:00Z'), finished_at: new Date('2025-10-14T19:15:00Z'), score: 70 },
-      { user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T21:30:00Z'), finished_at: new Date('2025-10-14T21:42:00Z'), score: 95 },
-      { user_id: 2, quiz_id: 2, started_at: new Date('2025-10-11T11:05:00Z'), finished_at: new Date('2025-10-11T11:24:15Z'), score: 78 },
-      { user_id: 3, quiz_id: 1, started_at: new Date('2025-09-20T18:00:00Z'), finished_at: new Date('2025-09-20T18:11:45Z'), score: 80 },
-      { user_id: 3, quiz_id: 1, started_at: new Date('2025-09-21T19:15:00Z'), finished_at: new Date('2025-09-21T19:25:10Z'), score: 70 },
-      { user_id: 4, quiz_id: 5, started_at: new Date('2025-08-30T22:30:00Z'), finished_at: new Date('2025-08-30T22:42:05Z'), score: 100 },
-      { user_id: 5, quiz_id: 4, started_at: new Date('2025-07-15T14:00:00Z'), finished_at: new Date('2025-07-15T14:11:30Z'), score: 85 },
-      { user_id: 8, quiz_id: 2, started_at: new Date('2025-10-12T13:00:00Z'), finished_at: new Date('2025-10-12T13:19:00Z'), score: 88 },
-      { user_id: 2, quiz_id: 1, started_at: new Date('2025-10-14T08:30:00Z'), finished_at: new Date('2025-10-14T08:39:22Z'), score: 75 },
-      { user_id: 6, quiz_id: 7, started_at: new Date('2025-10-14T22:00:00Z'), finished_at: null, score: null },
+      { quiz_attempt_id: 1, user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T17:10:00Z'), finished_at: new Date('2025-10-14T17:18:30Z'), score: 85 },
+      { quiz_attempt_id: 2, user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T19:00:00Z'), finished_at: new Date('2025-10-14T19:15:00Z'), score: 70 },
+      { quiz_attempt_id: 3, user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T21:30:00Z'), finished_at: new Date('2025-10-14T21:42:00Z'), score: 95 },
+      { quiz_attempt_id: 4, user_id: 2, quiz_id: 2, started_at: new Date('2025-10-11T11:05:00Z'), finished_at: new Date('2025-10-11T11:24:15Z'), score: 78 },
+      { quiz_attempt_id: 5, user_id: 3, quiz_id: 1, started_at: new Date('2025-09-20T18:00:00Z'), finished_at: new Date('2025-09-20T18:11:45Z'), score: 80 },
+      { quiz_attempt_id: 6, user_id: 3, quiz_id: 1, started_at: new Date('2025-09-21T19:15:00Z'), finished_at: new Date('2025-09-21T19:25:10Z'), score: 70 },
+      { quiz_attempt_id: 7, user_id: 4, quiz_id: 5, started_at: new Date('2025-08-30T22:30:00Z'), finished_at: new Date('2025-08-30T22:42:05Z'), score: 100 },
+      { quiz_attempt_id: 8, user_id: 5, quiz_id: 4, started_at: new Date('2025-07-15T14:00:00Z'), finished_at: new Date('2025-07-15T14:11:30Z'), score: 85 },
+      { quiz_attempt_id: 9, user_id: 8, quiz_id: 2, started_at: new Date('2025-10-12T13:00:00Z'), finished_at: new Date('2025-10-12T13:19:00Z'), score: 88 },
+      { quiz_attempt_id: 10, user_id: 2, quiz_id: 1, started_at: new Date('2025-10-14T08:30:00Z'), finished_at: new Date('2025-10-14T08:39:22Z'), score: 75 },
+      { quiz_attempt_id: 11, user_id: 6, quiz_id: 7, started_at: new Date('2025-10-14T22:00:00Z'), finished_at: null, score: null },
     ]
   });
   console.log('Quiz attempts created');
+
+  await prisma.questionResponse.createMany({
+    data: [
+      { question_response_id: 1, quiz_attempt_id: 1, question_id: 1, free_text_answer: null, earned_points: 10 },
+      { question_response_id: 2, quiz_attempt_id: 1, question_id: 2, free_text_answer: null, earned_points: 15 },
+      { question_response_id: 3, quiz_attempt_id: 1, question_id: 3, free_text_answer: 'JOIN', earned_points: 10 },
+      { question_response_id: 4, quiz_attempt_id: 4, question_id: 4, free_text_answer: null, earned_points: 10 },
+      { question_response_id: 5, quiz_attempt_id: 4, question_id: 5, free_text_answer: 'Ivan Vyhovsky', earned_points: 15 },
+    ]
+  });
+  console.log('Question responses created');
+
+ await prisma.selectedAnswer.createMany({
+    data: [
+      { question_response_id: 1, answer_option_id: 1 },
+      { question_response_id: 2, answer_option_id: 4 },
+      { question_response_id: 2, answer_option_id: 5 },
+      { question_response_id: 4, answer_option_id: 10 }, 
+    ]
+  });
+  console.log('Selected answers created');
 
   await prisma.bookmark.createMany({
     data: [

@@ -15,13 +15,19 @@ const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-app.get('/', (_req, res) => {
-    prisma.user.findMany().then(users => {
-        console.log('Users:', users);
+app.get('/', async (_req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            include: { 
+                quizzes: true 
+            } 
+        });
+        console.log('Users found:', users.length);
         res.json(users);
-    }).catch(err => {
+    } catch (err) {
         console.error('Error fetching users:', err);
-    });
+        res.status(500).json({ error: 'Something went wrong fetching users' });
+    }
 });
 
 process.on('unhandledRejection', (err:Error) => {
