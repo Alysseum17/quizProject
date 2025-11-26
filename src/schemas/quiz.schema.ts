@@ -1,4 +1,5 @@
-import { time } from 'console';
+
+
 import zod from 'zod';
 
 export const quizCreateSchema = zod.object({
@@ -19,10 +20,10 @@ export const quizUpdateSchema = zod.object({
 }); 
 
 export const quizQuerySchema = zod.object({
-    limit: zod.coerce.number().int().min(1).default(10).optional(),
-    sort: zod.enum(['asc', 'desc']).default('desc').optional(),
+    limit: zod.coerce.number().int().min(1).default(10),
+    sort: zod.enum(['asc', 'desc']).default('desc'),
     rating: zod.object({
-        gte: zod.coerce.number().min(0).max(5).default(0).optional(),
-        lte: zod.coerce.number().min(0).max(5).default(5).optional(),
-    }).optional(),
+        gte: zod.coerce.number().min(0).max(5).default(0),
+        lte: zod.coerce.number().min(0).max(5).default(5),
+    }).default({}),
 });

@@ -3,6 +3,7 @@ import {Prisma} from '@prisma/client';
 import {prisma} from '../prisma.js'
 import * as handlerFactory from './handlerFactory.js';
 import { quizCreateSchema, quizUpdateSchema, quizQuerySchema } from '../schemas/quiz.schema.js';
+import catchAsync from '../utils/catchAsync.js';
 
 const model = prisma.quiz;
 
@@ -10,23 +11,20 @@ export const getAllQuiz = handlerFactory.getAll(model);
 
 export const findQuizById = handlerFactory.getOne(model);
 
-export const findQuizByName = async (req:Request, res:Response) => {
+export const findQuizByName = catchAsync(async (req:Request, res:Response) => {
     const { name } = req.params;
     const quiz = await prisma.quiz.findMany({
         where: { title: { contains: name } },
     });
     res.status(200).json({ quiz });
-}
+});
 export const createQuiz = handlerFactory.createOne(model, quizCreateSchema);
 
 export const deleteQuiz = handlerFactory.deleteOne(model);
 
-export const getSortedQuizByRating = async (req:Request, res:Response) => {
-    const result = quizQuerySchema.safeParse(req.query);
-    if (!result.success) {
-        return res.status(400).json({ error: result.error });
-    }
-    const { limit, sort, rating } = result.data;
+export const getSortedQuizByRating = catchAsync(async (req:Request, res:Response) => {
+    const data = quizQuerySchema.parse(req.query);
+    const { limit, sort, rating } = data;
     const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
     const limitNumber = Number(limit);
     const quizzes = await prisma.$queryRaw`
@@ -38,6 +36,6 @@ export const getSortedQuizByRating = async (req:Request, res:Response) => {
         LIMIT ${limitNumber};
     `;
     res.status(200).json({ quizzes });
-}
+});
 
 export const updateQuiz = handlerFactory.updateOne(model, quizUpdateSchema);

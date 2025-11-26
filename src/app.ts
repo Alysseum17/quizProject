@@ -5,6 +5,7 @@ import cors from 'cors';
 import compression from 'compression';
 import quizRouter from './routers/quizRouter.js';
 import authRouter from './routers/authRouter.js';
+import globalErrorHandler from './controllers/errorController.js';
 export const app = express();
 app.set('query parser', 'extended');
 
@@ -24,6 +25,8 @@ app.use(compression());
 
 app.use('/api/quizzes', quizRouter);
 app.use('/api/users', authRouter);
+
+app.use(globalErrorHandler);
 
 
 
