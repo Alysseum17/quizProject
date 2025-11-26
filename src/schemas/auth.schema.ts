@@ -14,3 +14,14 @@ export const loginSchema = zod.object({
     email: zod.string().email('Invalid email address'),
     password: zod.string().min(6, 'Password must be at least 6 characters long'),
 });
+
+export const forgotPasswordSchema = zod.object({
+    email: zod.string().email('Invalid email address'),
+});
+export const resetPasswordSchema = zod.object({
+    password: zod.string().min(6, 'Password must be at least 6 characters long'),
+    passwordConfirm: zod.string().min(6, 'Password confirmation must be at least 6 characters long'),
+}).refine((data) => data.password === data.passwordConfirm, {
+    message: 'Passwords do not match',
+    path: ['passwordConfirm'],
+});
