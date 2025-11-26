@@ -38,6 +38,9 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcrypt": "^6.0.0",
     "body-parser": "^2.2.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -45,6 +48,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "xss-clean": "^0.1.4",
     "zod": "^4.1.13"

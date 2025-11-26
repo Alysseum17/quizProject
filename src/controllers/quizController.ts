@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import {Prisma} from '@prisma/client';        
 import {prisma} from '../prisma.js'
 import * as handlerFactory from './handlerFactory.js';
-import { quizCreateSchema, quizUpdateSchema } from '../schemas/quiz.schema.js';
+import { quizCreateSchema, quizUpdateSchema, quizQuerySchema } from '../schemas/quiz.schema.js';
 
 const model = prisma.quiz;
 
@@ -22,13 +22,18 @@ export const createQuiz = handlerFactory.createOne(model, quizCreateSchema);
 export const deleteQuiz = handlerFactory.deleteOne(model);
 
 export const getSortedQuizByRating = async (req:Request, res:Response) => {
-    const {limit, sort} = req.query;
+    const result = quizQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return res.status(400).json({ error: result.error });
+    }
+    const { limit, sort, rating } = result.data;
     const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
-    const limitNumber = Number(limit) || 5;
+    const limitNumber = Number(limit);
     const quizzes = await prisma.$queryRaw`
         SELECT q.title, AVG(r.rating) as average_rating FROM "Quiz" q
         INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
         GROUP BY q.quiz_id, q.title
+        HAVING AVG(r.rating) >= ${rating?.gte} AND AVG(r.rating) <= ${rating?.lte}
         ORDER BY AVG(r.rating) ${sortDirection}
         LIMIT ${limitNumber};
     `;
