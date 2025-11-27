@@ -1,21 +1,21 @@
-import { Request, Response } from 'express';
-import {Prisma} from '@prisma/client';        
+import { NextFunction, Request, Response } from 'express';      
 import {prisma} from '../prisma.js'
 import * as handlerFactory from './handlerFactory.js';
 import { quizCreateSchema, quizUpdateSchema, quizQuerySchema } from '../schemas/quiz.schema.js';
 import catchAsync from '../utils/catchAsync.js';
+import QuizService from '../services/quizService.js';
+import AppError from '../utils/appError.js';
 
 const model = prisma.quiz;
-
+const quizService = new QuizService();
 export const getAllQuiz = handlerFactory.getAll(model);
 
 export const findQuizById = handlerFactory.getOne(model);
 
-export const findQuizByName = catchAsync(async (req:Request, res:Response) => {
+export const findQuizByName = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
     const { name } = req.params;
-    const quiz = await prisma.quiz.findMany({
-        where: { title: { contains: name } },
-    });
+    if (!name) return next(new AppError('Quiz name parameter is required', 400));
+    const quiz = await quizService.findQuizByName(name);
     res.status(200).json({ quiz });
 });
 export const createQuiz = handlerFactory.createOne(model, quizCreateSchema);
@@ -25,16 +25,7 @@ export const deleteQuiz = handlerFactory.deleteOne(model);
 export const getSortedQuizByRating = catchAsync(async (req:Request, res:Response) => {
     const data = quizQuerySchema.parse(req.query);
     const { limit, sort, rating } = data;
-    const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
-    const limitNumber = Number(limit);
-    const quizzes = await prisma.$queryRaw`
-        SELECT q.title, AVG(r.rating) as average_rating FROM "Quiz" q
-        INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
-        GROUP BY q.quiz_id, q.title
-        HAVING AVG(r.rating) >= ${rating?.gte} AND AVG(r.rating) <= ${rating?.lte}
-        ORDER BY AVG(r.rating) ${sortDirection}
-        LIMIT ${limitNumber};
-    `;
+    const quizzes = await quizService.getSortedQuizByRating(limit, sort, rating);
     res.status(200).json({ quizzes });
 });
 
