@@ -118,7 +118,7 @@ export default class AuthService {
             throw new AppError('Token is invalid or has expired', 400);
         }
         const password_hash = await this.hashPassword(password);
-        await prisma.user.update({
+        const newUser = await prisma.user.update({
             where: { id: user.id },
             data: {
                 password_hash,
@@ -128,7 +128,7 @@ export default class AuthService {
             }
         });
         const newToken = this.signToken(user.id);
-        return { user, token: newToken };
+        return { user: newUser, token: newToken };
     }
 
 }
