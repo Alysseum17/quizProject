@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import {prisma} from '../prisma.js'
+import { is } from 'zod/locales';
 export default class QuizService {
     async findQuizByName(name: string) {
         return prisma.quiz.findMany({
@@ -17,5 +18,68 @@ export default class QuizService {
             LIMIT ${limit};
         `;
         return quizzes;
+    }
+    async createQuizComplex(quizData: any, authorId: number) {
+        return await prisma.$transaction(async (prisma) => {
+            const { title, quiz_description,  attempt_limit, time_limit, difficulty, questions } = quizData;
+            const newQuiz = await prisma.quiz.create({
+                data: {
+                    title,
+                    quiz_description, 
+                    attempt_limit,
+                    time_limit,
+                    difficulty,
+                    author_id: authorId 
+                }
+            }); 
+            for (const questionData of questions) {
+                const { question_text, question_type, options } = questionData;
+                const newQuestion = await prisma.question.create({
+                    data: {
+                        quiz_id: newQuiz.id,
+                        question_text,
+                        question_type,
+                        points: questionData.points || 1
+                    }
+                });
+                for (const option of options) {
+                    const { optionText, isCorrect } = option;
+                    await prisma.answerOption.create({
+                        data: {
+                            question_id: newQuestion.id,
+                            answer_text: optionText,
+                            is_correct: isCorrect || false
+                        }
+                    });
+                }
+            }
+            return newQuiz;
+                
+        });
+    }
+    async startQuizAttempt(quizId: number, userId: number) {
+        return await prisma.$transaction(async (prisma) => {
+            const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+            if (!quiz) {
+                throw new Error('Quiz not found');
+            }
+            const attemptCount = await prisma.quizAttempt.count({
+                where: {
+                    quiz_id: quizId,
+                    user_id: userId
+                }
+            });
+            if (quiz.attempt_limit !== null && attemptCount >= quiz.attempt_limit) {
+                throw new Error('Attempt limit reached for this quiz');
+            }
+            const newAttempt = await prisma.quizAttempt.create({
+                data: {
+                    quiz_id: quizId,
+                    user_id: userId,
+                    started_at: new Date()
+                }
+            });
+            return newAttempt;
+        });
     }
 }

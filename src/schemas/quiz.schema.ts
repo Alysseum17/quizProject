@@ -25,5 +25,5 @@ export const quizQuerySchema = zod.object({
     rating: zod.object({
         gte: zod.coerce.number().min(0).max(5).default(0),
         lte: zod.coerce.number().min(0).max(5).default(5),
-    }).default({}),
+    }).default({gte:0, lte:5}),
 });
