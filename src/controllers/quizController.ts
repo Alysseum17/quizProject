@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';      
 import {prisma} from '../prisma.js'
 import * as handlerFactory from './handlerFactory.js';
-import { quizCreateSchema, quizUpdateSchema, quizQuerySchema } from '../schemas/quiz.schema.js';
+import { quizCreateSchema, quizUpdateSchema, quizQuerySchema, quizComplexSchema } from '../schemas/quiz.schema.js';
 import catchAsync from '../utils/catchAsync.js';
 import QuizService from '../services/quizService.js';
 import AppError from '../utils/appError.js';
@@ -30,3 +30,21 @@ export const getSortedQuizByRating = catchAsync(async (req:Request, res:Response
 });
 
 export const updateQuiz = handlerFactory.updateOne(model, quizUpdateSchema);
+
+export const createQuizComplex = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const authorId = (req as any).user.id;
+    const data = req.body;
+    const quizData = quizComplexSchema.parse(data);
+    const newQuiz = await quizService.createQuizComplex(quizData, authorId);
+    res.status(201).json({ quiz: newQuiz });
+});
+
+export const startQuizAttempt = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const quizId = parseInt(req.params.quizId, 10);
+    const userId = (req as any).user.id;
+    if (isNaN(quizId)) {
+        return next(new AppError('Invalid quiz ID', 400));
+    }
+    const attempt = await quizService.startQuizAttempt(quizId, userId);
+    res.status(201).json({ attempt });
+});

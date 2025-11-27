@@ -27,3 +27,24 @@ export const quizQuerySchema = zod.object({
         lte: zod.coerce.number().min(0).max(5).default(5),
     }).default({gte:0, lte:5}),
 });
+
+export const optionSchema = zod.object({
+    optionText: zod.string().min(1, 'Option text is required'),
+    isCorrect: zod.boolean().optional(),
+});
+
+export const questionSchema = zod.object({
+    question_text: zod.string().min(1, 'Question text is required'),
+    question_type: zod.enum(['single_choice', 'multiple_choice', 'free_text']),
+    points: zod.coerce.number().int().min(1).optional(),
+    options: zod.array(optionSchema).min(1, 'At least one option is required'),
+});
+
+export const quizComplexSchema = zod.object({
+    title: zod.string().min(1, 'Title is required'),
+    quiz_description: zod.string().optional(),
+    attempt_limit: zod.coerce.number().int().min(1).optional(),
+    time_limit: zod.coerce.number().int().min(1).optional(),
+    difficulty: zod.enum(['easy', 'medium', 'hard']).optional(),
+    questions: zod.array(questionSchema).min(1, 'At least one question is required'),
+});

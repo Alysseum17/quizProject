@@ -53,7 +53,16 @@ export default class QuizService {
                     });
                 }
             }
-            return newQuiz;
+            return await prisma.quiz.findUnique({
+                where: { id: newQuiz.id },
+                include: {
+                    questions: {
+                        include: {
+                            answer_options: true
+                        }
+                    }
+                }
+            });
                 
         });
     }
