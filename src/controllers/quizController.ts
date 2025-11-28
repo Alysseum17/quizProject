@@ -24,8 +24,8 @@ export const deleteQuiz = handlerFactory.deleteOne(model);
 
 export const getSortedQuizByRating = catchAsync(async (req:Request, res:Response) => {
     const data = quizQuerySchema.parse(req.query);
-    const { limit, sort, rating } = data;
-    const quizzes = await quizService.getSortedQuizByRating(limit, sort, rating);
+    const { limit, sort, page, rating } = data;
+    const quizzes = await quizService.getSortedQuizByRating(limit, sort, page,  rating);
     res.status(200).json({ quizzes });
 });
 
