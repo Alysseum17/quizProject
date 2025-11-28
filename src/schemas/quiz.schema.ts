@@ -22,6 +22,7 @@ export const quizUpdateSchema = zod.object({
 export const quizQuerySchema = zod.object({
     limit: zod.coerce.number().int().min(1).default(10),
     sort: zod.enum(['asc', 'desc']).default('desc'),
+    page: zod.coerce.number().int().min(1).default(1),
     rating: zod.object({
         gte: zod.coerce.number().min(0).max(5).default(0),
         lte: zod.coerce.number().min(0).max(5).default(5),
