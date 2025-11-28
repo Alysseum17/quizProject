@@ -1,5 +1,4 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
-import { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { Email } from '../utils/email.js';
 import AppError from '../utils/appError.js';
@@ -69,14 +68,6 @@ export default class AuthService {
         }
         const token = this.signToken(user.id);
         return { user, token };
-    }
-    async logout(req: Request, res: Response) {
-        res.cookie('jwt', 'loggedout', {
-            httpOnly: true,
-            secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-            expires: new Date(Date.now() + 10 * 1000)
-        });
-        res.status(200).json({ status: 'success' });
     }
     async forgotPassword(email: string, protocol: string, host: string) {
         const user = await prisma.user.findUnique({ where: { email } });

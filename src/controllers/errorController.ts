@@ -2,7 +2,7 @@ import {Request, Response, NextFunction} from 'express';
 import AppError from '../utils/appError.js';
 import { ZodError } from 'zod';
 
-const globalErrorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+const globalErrorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
 

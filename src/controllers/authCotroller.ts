@@ -1,10 +1,5 @@
-import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { NextFunction, Request, Response } from 'express';
-import { prisma } from '../prisma.js';
-import bcrypt from 'bcrypt';
 import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../schemas/auth.schema.js';
-import { Email } from '../utils/email.js';
-import crypto from 'crypto';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import AuthService from '../services/authService.js';
@@ -27,7 +22,7 @@ const createSendToken = (user: any, token: string, statusCode: number, req: Requ
     });
 };
 
-export const signup = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const signup = catchAsync(async (req: Request, res: Response) => {
     const data = signupSchema.parse(req.body);
     const url = `${req.protocol}://${req.get('host')}/me`;
     const {user, token} = await authService.signup(data, url);
