@@ -121,5 +121,27 @@ export default class AuthService {
         const newToken = this.signToken(user.id);
         return { user: newUser, token: newToken };
     }
-
+    async updatePassword(userId: number, data: any) {
+        const { currentPassword, newPassword } = data;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || !(await this.validatePassword(currentPassword, user.password_hash))) {
+            throw new AppError('Your current password is incorrect.', 401);
+        }
+        const password_hash = await this.hashPassword(newPassword);
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                password_hash,
+                password_changed_at: new Date()
+            }
+        });
+        const token = this.signToken(userId);
+        return { user: updatedUser, token };
+    }
+    async softDeleteAccount(userId: number) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { is_active: false }
+        });
+    }
 }
