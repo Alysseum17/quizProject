@@ -67,6 +67,84 @@ export default class UserService {
             OFFSET ${offset}
         `;
     }
-    
+    async changeUserInfo(userId: number, data: { username?: string; email?: string }) {
+        return prisma.user.update({
+            where: { id: userId },
+            data: { username: data.username, email: data.email },
+        });
+    }
+
+    async getProlificAuthors(limit: number, page: number) {
+        const offset = (page - 1) * limit;
+        return prisma.$queryRaw`
+            WITH AuthorQuizCounts AS (
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    COUNT(q.quiz_id) AS quiz_count
+                FROM 
+                    "User" u
+                LEFT JOIN 
+                    "Quiz" q ON u.user_id = q.author_id
+                GROUP BY 
+                    u.user_id, u.username
+            ),
+            AverageQuizCount AS (
+                SELECT 
+                    AVG(quiz_count) AS avg_quiz_count
+                FROM 
+                    AuthorQuizCounts
+            )
+            SELECT 
+                aqc.username,
+                aqc.quiz_count,
+                DENSE_RANK() OVER (ORDER BY aqc.quiz_count DESC)::int AS rank
+            FROM 
+                AuthorQuizCounts aqc,
+                AverageQuizCount aqc2
+            WHERE 
+                aqc.quiz_count > aqc2.avg_quiz_count
+            ORDER BY 
+                aqc.quiz_count DESC NULLS LAST
+            LIMIT ${limit}
+            OFFSET ${offset};
+        `;
+    }
+    getHighPerfomanceUsers(limit: number, page: number) {
+        const offset = (page - 1) * limit;
+        return prisma.$queryRaw`
+            WITH UserAverageScores AS (
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    AVG(qa.score) AS average_score
+                FROM 
+                    "User" u
+                INNER JOIN 
+                    "QuizAttempt" qa ON u.user_id = qa.user_id
+                GROUP BY 
+                    u.user_id, u.username
+            ),
+            AverageOfAverages AS (
+                SELECT 
+                    AVG(average_score) AS avg_of_avg_scores
+                FROM 
+                    UserAverageScores
+            )
+            SELECT 
+                uas.username,
+                uas.average_score,
+                DENSE_RANK() OVER (ORDER BY uas.average_score DESC)::int AS rank
+            FROM 
+                UserAverageScores uas,
+                AverageOfAverages aoa
+            WHERE 
+                uas.average_score > aoa.avg_of_avg_scores
+            ORDER BY 
+                uas.average_score DESC NULLS LAST
+            LIMIT ${limit}
+            OFFSET ${offset};
+        `;
+    }
 }
 
