@@ -61,3 +61,23 @@ export const findTopAuthorsByAverageQuizRating = catchAsync(async (req: Request,
     const topAuthors = await userService.findTopAuthorsByAverageQuizRating(limit, page);
     res.status(200).json({ topAuthors });
 });
+
+export const changeUserInfo = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req as any).user.id;
+    const data = userSchemas.changeInfoSchema.parse(req.body);
+    const updatedUser = await userService.changeUserInfo(userId, data);
+    res.status(200).json({ user: updatedUser });
+});
+
+export const getProlificAuthors = catchAsync(async (req: Request, res: Response) => {
+    const query = userSchemas.queryUserSchema.parse(req.query);
+    const { limit, page } = query;
+    const authors = await userService.getProlificAuthors(limit, page);
+    res.status(200).json({ authors });
+});
+export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Response) => {
+    const query = userSchemas.queryUserSchema.parse(req.query);
+    const { limit, page } = query;
+    const users = await userService.getHighPerfomanceUsers(limit, page);
+    res.status(200).json({ users });
+});
