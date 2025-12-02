@@ -8,6 +8,7 @@ import authRouter from './routers/authRouter.js';
 import userRouter from './routers/userRouter.js';
 import globalErrorHandler from './controllers/errorController.js';
 import cookieParser from 'cookie-parser';
+import bookmarkRouter from './routers/bookmarkRouter.js';
 export const app = express();
 app.set('query parser', 'extended');
 
@@ -29,6 +30,7 @@ app.use(cookieParser());
 app.use('/api/quizzes', quizRouter);
 app.use('/api/users', authRouter);
 app.use('/api/user-profiles', userRouter);
+app.use('/api/bookmarks', bookmarkRouter);
 
 app.use(globalErrorHandler);
 
