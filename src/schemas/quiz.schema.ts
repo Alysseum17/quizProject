@@ -11,6 +11,7 @@ export const quizCreateSchema = zod.object({
     difficulty: zod.enum(['easy', 'medium', 'hard']).optional(),
 });
 
+
 export const quizUpdateSchema = zod.object({
     title: zod.string().min(1, 'Title is required').optional(),
     quiz_description: zod.string().optional(),
@@ -48,4 +49,16 @@ export const quizComplexSchema = zod.object({
     time_limit: zod.coerce.number().int().min(1).optional(),
     difficulty: zod.enum(['easy', 'medium', 'hard']).optional(),
     questions: zod.array(questionSchema).min(1, 'At least one question is required'),
+});
+
+export const quizIdParamSchema = zod.object({
+    id: zod.coerce.number().int(),
+});
+
+export const quizAttemptIdParamSchema = zod.object({
+    quizId: zod.coerce.number().int(),
+});
+
+export const quizNameParamSchema = zod.object({
+    name: zod.string().min(1, 'Quiz name is required'),
 });

@@ -5,7 +5,7 @@ import cors from 'cors';
 import compression from 'compression';
 import quizRouter from './routers/quizRouter.js';
 import authRouter from './routers/authRouter.js';
-import userRotuer from './routers/userRouter.js';
+import userRouter from './routers/userRouter.js';
 import globalErrorHandler from './controllers/errorController.js';
 import cookieParser from 'cookie-parser';
 export const app = express();
@@ -28,7 +28,7 @@ app.use(cookieParser());
 
 app.use('/api/quizzes', quizRouter);
 app.use('/api/users', authRouter);
-app.use('/api/user-profiles', userRotuer);
+app.use('/api/user-profiles', userRouter);
 
 app.use(globalErrorHandler);
 

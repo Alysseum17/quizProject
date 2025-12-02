@@ -25,9 +25,26 @@ export const findUsersByName = catchAsync(async (req: Request, res: Response, ne
     res.status(200).json({ users });
 });
 
+export const getUserWithDetails = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const data = userSchemas.findUserByIdSchema.parse(req.params);
+    const { userId } = data;
+    const user = await userService.getUserWithDetails(userId);
+    if (!user) {
+        return next(new AppError('User not found', 404));
+    }
+    res.status(200).json({ user });
+});
+
+export const getUserQuizes = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const data = userSchemas.findUserByIdSchema.parse(req.params);
+    const { userId } = data;
+    const quizes = await userService.getUserQuizes(userId);
+    res.status(200).json({ quizes });
+});
+
 export const getCurrentUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as any).user.id;
-    const user = await userService.findUserById(userId);
+    const user = await userService.getUserWithDetails(userId);
     if (!user) {
         return next(new AppError('User not found', 404));
     }
@@ -78,6 +95,6 @@ export const getProlificAuthors = catchAsync(async (req: Request, res: Response)
 export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const users = await userService.getHighPerfomanceUsers(limit, page);
+    const users = await userService.getHighPerformanceUsers(limit, page);
     res.status(200).json({ users });
 });

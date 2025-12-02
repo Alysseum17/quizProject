@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../schemas/auth.schema.js';
+import * as authSchemas from '../schemas/auth.schema.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import AuthService from '../services/authService.js';
+import { updatePasswordSchema } from '../schemas/auth.schema.js';
 
 
 const authService = new AuthService();
@@ -23,14 +24,14 @@ const createSendToken = (user: any, token: string, statusCode: number, req: Requ
 };
 
 export const signup = catchAsync(async (req: Request, res: Response) => {
-    const data = signupSchema.parse(req.body);
+    const data = authSchemas.signupSchema.parse(req.body);
     const url = `${req.protocol}://${req.get('host')}/me`;
     const {user, token} = await authService.signup(data, url);
     createSendToken(user, token, 201, req, res);
 });
 
 export const login = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const data = loginSchema.parse(req.body);
+    const data = authSchemas.loginSchema.parse(req.body);
     const {user, token} = await authService.login(data);
     createSendToken(user, token, 200, req, res);
 });
@@ -63,7 +64,7 @@ export const protect = catchAsync(async (req: Request, res: Response, next: Next
 });
 
 export const forgotPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const data = forgotPasswordSchema.parse(req.body);
+    const data = authSchemas.forgotPasswordSchema.parse(req.body);
     const host = req.get('host') || 'localhost:3000';
     await authService.forgotPassword(data.email, req.protocol, host);
     res.status(200).json({
@@ -73,8 +74,21 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response, nex
 });
 
 export const resetPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const data = resetPasswordSchema.parse(req.body);
+    const data = authSchemas.resetPasswordSchema.parse(req.body);
     const tokenReq = req.params.token;
     const {user,token} = await authService.resetPassword(data, tokenReq);
     createSendToken(user, token, 200, req, res);
+});
+
+export const updatePassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req as any).user.id;
+    const data = updatePasswordSchema.parse(req.body);
+    const {user, token} = await authService.updatePassword(userId, data);
+    createSendToken(user, token, 200, req, res);
+});
+
+export const softDeleteAccount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req as any).user.id;
+    await authService.softDeleteAccount(userId);
+    res.status(204).json({ status: 'success', data: null });
 });
