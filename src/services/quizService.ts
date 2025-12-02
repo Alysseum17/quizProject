@@ -1,15 +1,65 @@
 import { Prisma } from '@prisma/client';
 import {prisma} from '../prisma.js'
+
+interface SortedQuizByRating {
+    title: string;
+    average_rating: number;
+}
+
 export default class QuizService {
     async findQuizByName(name: string) {
-        return prisma.quiz.findMany({
+        const quizzes = await prisma.quiz.findMany({
             where: { title: { contains: name } },
+            include: {
+                _count: {
+                    select: { questions: true, quiz_attempts: true }
+                },
+                reviews: true
+            }
         });
+        return quizzes.map(quiz => {
+            const totalRatings = quiz.reviews.reduce((sum, review) => sum + Number(review.rating), 0);
+            const averageRating =
+                quiz.reviews.length > 0
+                    ? totalRatings / quiz.reviews.length
+                    : 0;
+            return {
+                quiz_id: quiz.id,
+                title: quiz.title,
+                description: quiz.quiz_description,
+                total_questions: quiz._count.questions,
+                total_attempts: quiz._count.quiz_attempts,
+                average_rating: averageRating
+            };
+        });
+    }
+    async getFullyDetailedQuizById(quizId: number) {
+        const quiz = await prisma.quiz.findUnique({
+            where: { id: quizId },
+            include: {
+                questions: {
+                    include: {
+                        answer_options: true
+                    }
+                },
+                reviews: {
+                    select: {
+                        user_id: true,
+                        rating: true,
+                        review_text: true,
+                        created_at: true
+                    },
+                    take: 10,
+                    orderBy: { created_at: 'desc' }
+                }
+            }
+        });
+        return quiz;
     }
     async getSortedQuizByRating(limit: number, sort: 'asc' | 'desc', page: number, rating: { gte: number; lte: number }) {
         const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
         const offset = (page - 1) * limit;
-        const quizzes = await prisma.$queryRaw`
+        const quizzes = await prisma.$queryRaw<SortedQuizByRating[]>`
             SELECT q.title, AVG(r.rating) as average_rating FROM "Quiz" q
             INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
             GROUP BY q.quiz_id, q.title

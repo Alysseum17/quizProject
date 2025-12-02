@@ -25,3 +25,12 @@ export const resetPasswordSchema = zod.object({
     message: 'Passwords do not match',
     path: ['passwordConfirm'],
 });
+
+export const updatePasswordSchema = zod.object({
+    currentPassword: zod.string().min(6, 'Current password must be at least 6 characters long'),
+    newPassword: zod.string().min(6, 'New password must be at least 6 characters long'),
+    newPasswordConfirm: zod.string().min(6, 'New password confirmation must be at least 6 characters long'),
+}).refine((data) => data.newPassword === data.newPasswordConfirm, {
+    message: 'New passwords do not match',
+    path: ['newPasswordConfirm'],
+});

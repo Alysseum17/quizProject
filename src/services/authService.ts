@@ -118,7 +118,7 @@ export default class AuthService {
                 password_changed_at: new Date()
             }
         });
-        const newToken = this.signToken(user.id);
+        const newToken = this.signToken(newUser.id);
         return { user: newUser, token: newToken };
     }
     async updatePassword(userId: number, data: any) {

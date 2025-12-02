@@ -50,3 +50,12 @@ export const updateOne =  (model:any, schema:any) => catchAsync(async (req:Reque
     });
     res.status(200).json({ updatedItem });
 });
+
+export const softDelete =  (model:any) => catchAsync(async (req:Request, res:Response) => {
+    const { id } = req.params;
+    await model.update({
+        where: { id: +id },
+        data: { is_active: false }
+    });
+    res.status(204).send('Item soft-deleted successfully');
+});

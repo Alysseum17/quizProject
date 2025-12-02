@@ -1,5 +1,41 @@
 import {prisma} from '../prisma.js'
 
+interface TopUsersByQuizScore {
+    username: string;
+    average_score: number;
+    rank: number;
+}
+
+interface TopAuthorsByQuizAttempts {
+    username: string;
+    total_attempts: number;
+    rank: number;
+}
+
+interface TopAuthorsByQuizCounts {
+    username: string;
+    total_quizzes: number;
+    rank: number;
+}
+
+interface TopAuthorsByAverageQuizRating {
+    username: string;
+    average_rating: number;
+    rank: number;
+}
+
+interface ProlificAuthor {
+    username: string;
+    quiz_count: number;
+    rank: number;
+}
+
+interface HighPerformanceUser {
+    username: string;
+    average_score: number;
+    rank: number;
+}
+
 export default class UserService {
     async findUserByEmail(email: string) {
         return prisma.user.findUnique({
@@ -19,10 +55,82 @@ export default class UserService {
             where: { id: userId },
         });
     }
+    async getUserWithDetails(userId: number) {
+   
+        const [userStats, ratingStats] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                _count: {
+                    select: {
+                        quizzes: true,       
+                        quiz_attempts: true 
+                    }
+                }
+            }
+        }),
+        prisma.review.aggregate({
+            _avg: {
+                rating: true
+            },
+            where: {
+                quiz: {
+                    author_id: userId
+                }
+            }
+        })
+    ]);
+
+    if (!userStats) return null;
+
+    return {
+        id: userStats.id,
+        username: userStats.username,
+        email: userStats.email,
+        total_quizzes: userStats._count.quizzes,
+        total_quiz_attempts: userStats._count.quiz_attempts,
+        average_quiz_rating: Number(ratingStats._avg.rating) || 0 
+    };
+}
+    async getUserQuizes(userId: number) {
+        const quizzes = await prisma.quiz.findMany({
+            where: { author_id: userId },
+            include: {
+                _count: {  
+                    select:{
+                        quiz_attempts: true,
+                    }
+                },
+                reviews: {
+                    select: {
+                        rating: true
+                    }
+                }
+            }
+        });
+        return quizzes.map(quiz => {
+            const totalRatings = quiz.reviews.reduce((sum, review) => sum + Number(review.rating), 0);
+            const averageRating =
+                quiz.reviews.length > 0
+                    ? totalRatings / quiz.reviews.length
+                    : 0;
+            return {
+                quiz_id: quiz.id,
+                title: quiz.title,
+                quiz_description: quiz.quiz_description,
+                created_at: quiz.created_at,
+                total_attempts: quiz._count.quiz_attempts,
+                average_rating: averageRating
+            };
+        });
+    }
 
     async findTopUsersByQuizScore(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<TopUsersByQuizScore[]>`
             SELECT u.username, AVG(s.score) as average_score, DENSE_RANK() OVER (ORDER BY AVG(s.score) DESC)::int as rank FROM "User" u
             INNER JOIN "QuizAttempt" s ON u.user_id = s.user_id
             GROUP BY u.user_id, u.username
@@ -33,7 +141,7 @@ export default class UserService {
     }
     async findTopAuthorsByQuizAttempts(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<TopAuthorsByQuizAttempts[]>`
             SELECT u.username, COUNT(qa.quiz_attempt_id)::int as total_attempts, DENSE_RANK() OVER (ORDER BY COUNT(qa.quiz_attempt_id) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             INNER JOIN "QuizAttempt" qa ON q.quiz_id = qa.quiz_id
@@ -46,7 +154,7 @@ export default class UserService {
 
     async findTopAuthorsByQuizCounts(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<TopAuthorsByQuizCounts[]>`
             SELECT u.username, COUNT(q.quiz_id)::int as total_quizzes, DENSE_RANK() OVER (ORDER BY COUNT(q.quiz_id) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             GROUP BY u.user_id, u.username
@@ -57,7 +165,7 @@ export default class UserService {
     }
     async findTopAuthorsByAverageQuizRating(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<TopAuthorsByAverageQuizRating[]>`
             SELECT u.username, AVG(r.rating) as average_rating, DENSE_RANK() OVER (ORDER BY AVG(r.rating) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
@@ -76,7 +184,7 @@ export default class UserService {
 
     async getProlificAuthors(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<ProlificAuthor[]>`
             WITH AuthorQuizCounts AS (
                 SELECT 
                     u.user_id,
@@ -110,9 +218,9 @@ export default class UserService {
             OFFSET ${offset};
         `;
     }
-    getHighPerfomanceUsers(limit: number, page: number) {
+    async getHighPerformanceUsers(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw`
+        return prisma.$queryRaw<HighPerformanceUser[]>`
             WITH UserAverageScores AS (
                 SELECT 
                     u.user_id,

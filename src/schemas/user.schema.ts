@@ -18,3 +18,7 @@ export const queryUserSchema = zod.object({
     page: zod.coerce.number().int().min(1).default(1),
 });
 
+export const findUserByIdSchema = zod.object({
+    userId: zod.coerce.number().int(),
+});
+
