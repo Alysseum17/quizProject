@@ -36,6 +36,15 @@ interface HighPerformanceUser {
     rank: number;
 }
 
+interface UserQuizStats {
+    user_id: number;
+    quiz_id: number;
+    total_attempts: number;
+    best_score: number;
+    last_attempt_date: Date;
+    last_score: number;
+}
+
 export default class UserService {
     async findUserByEmail(email: string) {
         return prisma.user.findUnique({
@@ -253,6 +262,26 @@ export default class UserService {
             LIMIT ${limit}
             OFFSET ${offset};
         `;
+    }
+
+    async getUserQuizStats(userId: number, quizId: number) {
+        return prisma.$queryRaw<UserQuizStats[]>`
+            SELECT 
+                qa.user_id,
+                qa.quiz_id,
+                COUNT(qa.attempt_id)::int AS total_attempts,
+                MAX(qa.score) AS best_score,
+                MAX(qa.finished_at) AS last_attempt_date,
+                (SELECT score 
+                FROM "QuizAttempt" qa2 
+                WHERE qa2.user_id = qa.user_id 
+                    AND qa2.quiz_id = qa.quiz_id 
+                ORDER BY started_at DESC 
+                LIMIT 1) AS last_score
+            FROM "QuizAttempt" qa
+            WHERE qa.user_id = ${userId} AND qa.quiz_id = ${quizId}
+            GROUP BY qa.user_id, qa.quiz_id;
+`
     }
 }
 

@@ -60,6 +60,12 @@ export const submitQuizAttempt = catchAsync(async (req:Request, res:Response, ne
     res.status(200).json({ result });
 });
 
+export const getQuizResults = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const data = quizSchemas.quizAttemptIdParamSchema.parse(req.params);
+    const { attemptId } = data;
+    const results = await quizService.getQuizResults(attemptId);
+    res.status(200).json({ results });
+});
 
 
 export const getFullyDetailedQuizById = catchAsync(async (req:Request, res:Response, next: NextFunction) => {

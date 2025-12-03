@@ -22,3 +22,6 @@ export const findUserByIdSchema = zod.object({
     userId: zod.coerce.number().int(),
 });
 
+export const quizIdParamSchema = zod.object({
+    quizId: zod.coerce.number().int(),
+});
