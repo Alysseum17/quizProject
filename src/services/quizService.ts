@@ -1,11 +1,18 @@
 import { Prisma } from '@prisma/client';
 import {prisma} from '../prisma.js'
+import AppError from '../utils/appError.js';        
 
 interface SortedQuizByRating {
     title: string;
     average_rating: number;
 }
 
+type Answer = {
+    question_id: number;
+    selected_option_ids?: number[];
+    free_text_answer?: string;
+};
+    
 export default class QuizService {
     async findQuizByName(name: string) {
         const quizzes = await prisma.quiz.findMany({
@@ -121,7 +128,7 @@ export default class QuizService {
         return await prisma.$transaction(async (prisma) => {
             const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
             if (!quiz) {
-                throw new Error('Quiz not found');
+                throw new AppError('Quiz not found', 404);
             }
             const attemptCount = await prisma.quizAttempt.count({
                 where: {
@@ -130,16 +137,150 @@ export default class QuizService {
                 }
             });
             if (quiz.attempt_limit !== null && attemptCount >= quiz.attempt_limit) {
-                throw new Error('Attempt limit reached for this quiz');
+                throw new AppError('Attempt limit reached for this quiz', 400);
             }
-            const newAttempt = await prisma.quizAttempt.create({
+            return await prisma.quizAttempt.create({
                 data: {
                     quiz_id: quizId,
                     user_id: userId,
                     started_at: new Date()
                 }
             });
-            return newAttempt;
         });
+    }
+   async submitQuizAttempt(attemptId: number, answers: Answer[]) {
+        return await prisma.$transaction(async (tx) => { 
+            const attempt = await tx.quizAttempt.findUnique({ where: { id: attemptId } });
+            if (!attempt) {
+                throw new AppError('Quiz attempt not found', 404);
+            }
+            if (attempt.finished_at) {
+                throw new AppError('This attempt is already submitted', 400);
+            }
+
+            let totalQuizScore = 0; 
+
+            for (const answer of answers) {
+                let { question_id, selected_option_ids } = answer;
+                let answerScore = 0;
+                let free_text_answer = '';
+                const question = await tx.question.findUnique({ 
+                    where: { id: question_id },
+                    include: { answer_options: true }
+                });
+
+                if (!question) {
+                    throw new AppError(`Question with ID ${question_id} not found`, 404);
+                }
+                if (question.question_type === 'free_text') {
+                    free_text_answer = answer.free_text_answer || '';
+                    const correctAnswerOption = question.answer_options[0];
+                    const correctAnswerText = correctAnswerOption ? correctAnswerOption.answer_text : '';
+                    if( free_text_answer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim()) {
+                        answerScore = question.points;
+                        if(!selected_option_ids) {
+                            selected_option_ids = [];
+                        }
+                        selected_option_ids.push(correctAnswerOption.id);
+                    } else {
+                        answerScore = 0;
+                    }
+                }  else { 
+                    if (selected_option_ids) {
+                    const correctOptions = question.answer_options.filter(o => o.is_correct);
+                    const totalCorrectOptionsCount = correctOptions.length;
+                    let correctlySelectedCount = 0;
+                    let wronglySelectedCount = 0;
+                    for (const selectedId of selected_option_ids) {
+                        const option = question.answer_options.find(o => o.id === selectedId);
+                        if (!option) {
+                            throw new AppError(`Option ID ${selectedId} does not belong to question ${question_id}`, 400);
+                        }
+                        if (option.is_correct) {
+                            correctlySelectedCount++;
+                        } else {
+                            wronglySelectedCount++;
+                        }
+                    }
+                    if (totalCorrectOptionsCount === 0) {
+                         answerScore = 0;
+                    } else if (wronglySelectedCount > 0) {
+                        answerScore = 0;
+                    } else {
+                        answerScore = question.points * (correctlySelectedCount / totalCorrectOptionsCount);
+                    }
+                }
+            }
+                totalQuizScore += answerScore;
+
+                const questionResponse = await tx.questionResponse.create({
+                    data: {
+                        free_text_answer,
+                        earned_points: answerScore,
+                        question_id,
+                        quiz_attempt_id: attemptId
+                    }
+                });
+                if (selected_option_ids && selected_option_ids.length > 0) {
+                    await tx.selectedAnswer.createMany({
+                        data: selected_option_ids.map(optionId => ({
+                            answer_option_id: optionId,
+                            question_response_id: questionResponse.id
+                        }))
+                    });
+                }
+            }
+
+            return await tx.quizAttempt.update({
+                where: { id: attemptId },
+                data: {
+                    finished_at: new Date(),
+                    score: totalQuizScore
+                }
+            });
+            
+        });
+
+    }
+    async getQuizResults(attemptId: number) {
+        const attempt = await prisma.quizAttempt.findUnique({
+            where: { id: attemptId },
+            include: {
+                question_responses: {
+                    include: {
+                        question: true,
+                        selected_answers: {
+                            include: {
+                                answer_option: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        if (!attempt) {
+            throw new AppError('Quiz attempt not found', 404);
+        }
+        const totalPointsEarned = attempt.question_responses.reduce((sum, response) => response.earned_points ? sum + response.earned_points : sum, 0);
+        const totalPossiblePoints = attempt.question_responses.reduce((sum, response) => sum + response.question.points, 0);
+        return {
+            attemptId: attempt.id,
+            userId: attempt.user_id,
+            quizId: attempt.quiz_id,
+            totalPointsEarned,
+            totalPossiblePoints,
+            questionResponses: attempt.question_responses.map(response => ({
+                questionId: response.question_id,
+                questionText: response.question.question_text,
+                earnedPoints: response.earned_points,
+                possiblePoints: response.question.points,
+                selectedAnswers: response.selected_answers.map(sa => ({
+                    answerOptionId: sa.answer_option_id,
+                    answerText: sa.answer_option.answer_text,
+                    isCorrect: sa.answer_option.is_correct
+                })),
+                freeTextAnswer: response.free_text_answer
+            }))
+        };
     }
 }
