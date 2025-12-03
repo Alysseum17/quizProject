@@ -52,13 +52,22 @@ export const quizComplexSchema = zod.object({
 });
 
 export const quizIdParamSchema = zod.object({
-    id: zod.coerce.number().int(),
+    quizId: zod.coerce.number().int(),
 });
 
 export const quizAttemptIdParamSchema = zod.object({
-    quizId: zod.coerce.number().int(),
+    attemptId: zod.coerce.number().int(),
 });
 
 export const quizNameParamSchema = zod.object({
     name: zod.string().min(1, 'Quiz name is required'),
 });
+
+export const quizAttemptSubmitSchema = zod.object({
+    answers: zod.array(zod.object({
+        question_id: zod.coerce.number().int(),
+        selected_option_ids: zod.array(zod.coerce.number().int()).optional(),
+        free_text_answer: zod.string().optional(),
+    })).min(1, 'At least one answer is required'),
+});
+

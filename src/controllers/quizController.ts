@@ -44,15 +44,26 @@ export const createQuizComplex = catchAsync(async (req:Request, res:Response, ne
 });
 
 export const startQuizAttempt = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
-    const data = quizSchemas.quizAttemptIdParamSchema.parse(req.params);
+    const data = quizSchemas.quizIdParamSchema.parse(req.params);
     const { quizId } = data;
     const userId = (req as any).user.id;
     const attempt = await quizService.startQuizAttempt(quizId, userId);
     res.status(201).json({ attempt });
 });
 
+export const submitQuizAttempt = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const paramData = quizSchemas.quizAttemptIdParamSchema.parse(req.params);
+    const { attemptId } = paramData;
+    const bodyData = quizSchemas.quizAttemptSubmitSchema.parse(req.body);
+    const { answers } = bodyData;
+    const result = await quizService.submitQuizAttempt(attemptId, answers);
+    res.status(200).json({ result });
+});
+
+
+
 export const getFullyDetailedQuizById = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
-    const quizId = quizSchemas.quizIdParamSchema.parse(req.params).id;
+    const {quizId} = quizSchemas.quizIdParamSchema.parse(req.params);
     const quiz = await quizService.getFullyDetailedQuizById(quizId);
     if (!quiz) {
         return next(new AppError('Quiz not found', 404));
