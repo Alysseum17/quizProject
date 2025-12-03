@@ -1,6 +1,6 @@
 import express from 'express';
 import * as quizController from '../controllers/quizController.js';
-import {protect} from '../controllers/authCotroller.js';
+import {protect} from '../controllers/authController.js';
 
 const router = express.Router();
 
