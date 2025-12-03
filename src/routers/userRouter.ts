@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/me', protect, userController.getCurrentUser);
 router.get('/me/:quizId/stats', protect, userController.getUserQuizStats);
+router.get('/me/activities', protect, userController.getUserLastActivities);
 router.get('/email/:email', userController.findUserByEmail);
 router.get('/name/:name', userController.findUsersByName);
 router.get('/top/quiz-scores', userController.findTopUsersByQuizScore);

@@ -283,5 +283,24 @@ export default class UserService {
             GROUP BY qa.user_id, qa.quiz_id;
 `
     }
+    async getLastUserActivities(userId: number, limit: number, page: number) {
+        const offset = (page - 1) * limit;
+        return prisma.quizAttempt.findMany({
+            where: { user_id: userId, finished_at: { not: null } },
+            orderBy: { started_at: 'desc' },
+            take: limit,
+            skip: offset,
+            include: {
+                quiz: {
+                    select: {
+                        id: true,
+                        title: true,
+                        quiz_description: true,
+                    }
+                }
+            }
+        });
+    }
+
 }
 
