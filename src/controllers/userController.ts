@@ -110,3 +110,10 @@ export const getUserQuizStats = catchAsync(async (req: Request, res: Response, n
     }
     res.status(200).json({ stats });
 });
+
+export const getUserLastActivities = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req as any).user.id;
+    const {limit, page} = userSchemas.queryUserSchema.parse(req.query);
+    const activities = await userService.getLastUserActivities(userId, limit, page);
+    res.status(200).json({ activities });
+});
