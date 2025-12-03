@@ -1,9 +1,12 @@
 import express from 'express';
+import * as bookmarkController from '../controllers/bookmarkController.js';
+import { protect } from '../controllers/authCotroller.js';
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-    res.json({ message: "Bookmarks route works" });
-});
+router.use(protect);
+router.get('/', bookmarkController.getMyBookmarks);
+router.post('/:id', bookmarkController.addBookmark);
+router.delete('/:id', bookmarkController.removeBookmark);
 
 export default router;
