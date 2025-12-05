@@ -2,7 +2,7 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
-import e from 'express';
+
 
 describe('Global Quiz Integration Tests', () => {
     let token: string;
