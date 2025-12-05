@@ -57,5 +57,5 @@ export const softDelete =  (model:any) => catchAsync(async (req:Request, res:Res
         where: { id: +id },
         data: { is_active: false }
     });
-    res.status(204).send('Item soft-deleted successfully');
+    res.status(200).send('Item soft-deleted successfully');
 });
