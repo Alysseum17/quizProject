@@ -15,8 +15,8 @@ export const findQuizById = handlerFactory.getOne(model);
 export const findQuizByName = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
     const data = quizSchemas.quizNameParamSchema.parse(req.params);
     const { name } = data;
-    const quiz = await quizService.findQuizByName(name);
-    res.status(200).json({ quiz });
+    const quizzes = await quizService.findQuizByName(name);
+    res.status(200).json({ quizzes });
 });
 export const createQuiz = handlerFactory.createOne(model, quizSchemas.quizCreateSchema);
 
