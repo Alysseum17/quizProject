@@ -63,6 +63,32 @@ export default class QuizService {
         });
         return quiz;
     }
+    async updateQuiz(quizId: number, quizData: any, userId: number) {
+        const existingQuiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+        if (!existingQuiz) {
+            throw new AppError('Quiz not found', 404);
+        }
+        if (existingQuiz.author_id !== userId) {
+            throw new AppError('You do not have permission to update this quiz', 403);
+        }
+        return await prisma.quiz.update({
+            where: { id: quizId },
+            data: quizData
+        });
+    }
+    async softDeleteQuiz(quizId: number, userId: number) {
+        const existingQuiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+        if (!existingQuiz) {
+            throw new AppError('Quiz not found', 404);
+        }
+        if (existingQuiz.author_id !== userId) {
+            throw new AppError('You do not have permission to delete this quiz', 403);
+        }
+        return await prisma.quiz.update({
+            where: { id: quizId },
+            data: { is_active: false }
+        });
+    }
     async getSortedQuizByRating(limit: number, sort: 'asc' | 'desc', page: number, rating: { gte: number; lte: number }) {
         const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
         const offset = (page - 1) * limit;
@@ -130,6 +156,7 @@ export default class QuizService {
             if (!quiz) {
                 throw new AppError('Quiz not found', 404);
             }
+
             const attemptCount = await prisma.quizAttempt.count({
                 where: {
                     quiz_id: quizId,
@@ -138,6 +165,16 @@ export default class QuizService {
             });
             if (quiz.attempt_limit !== null && attemptCount >= quiz.attempt_limit) {
                 throw new AppError('Attempt limit reached for this quiz', 400);
+            }
+            const existingAttempt = await prisma.quizAttempt.findFirst({
+                where: {
+                    quiz_id: quizId,
+                    user_id: userId,
+                    finished_at: null
+                }
+            });
+            if (existingAttempt) {
+                throw new AppError('You have an ongoing attempt for this quiz', 400);
             }
             return await prisma.quizAttempt.create({
                 data: {
