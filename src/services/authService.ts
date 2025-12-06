@@ -43,6 +43,9 @@ export default class AuthService {
     }
     async signup(userData: any, url: string) {
         const { username, email, password } = userData;
+        if (await prisma.user.findUnique({ where: { email } })) {
+            throw new AppError('Email already in use', 400);
+        }
             const password_hash = await this.hashPassword(password);
             const newUser = await prisma.user.create({
                 data: {
@@ -57,12 +60,12 @@ export default class AuthService {
     }
     async login(loginData: any) {
         const { email, password } = loginData;
-        if (!email || !password) {
-             throw new AppError('Please provide email and password!', 400);
-        }
         const user = await prisma.user.findUnique({
             where: { email }
         });
+        if(user && user.is_active === false){
+            throw new AppError('The user account has been deactivated.', 401);
+        }
         if (!user || !(await this.validatePassword(password, user.password_hash))) {
             throw new AppError('Incorrect email or password', 401);
         }
