@@ -1,17 +1,26 @@
 import AuthService from '../../src/services/authService.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import AppError from '../../src/utils/appError.js';
 
 
-jest.mock('../../src/prisma.js', () => ({
+jest.mock('../../src/prisma', () => ({
     prisma: {
         user: {
-            findUnique: jest.fn()
+            findUnique: jest.fn(), 
+            findFirst: jest.fn(),  
+            create: jest.fn(),     
+            update: jest.fn(),     
         }
     }
 }));
-jest.mock('jsonwebtoken');
+jest.mock('bcrypt');
+jest.mock('jsonwebtoken', () => ({
+    sign: jest.fn().mockReturnValue('new_jwt_token'),
+    verify: jest.fn() 
+}));
 
 describe('AuthService Unit Tests - verifyUserToken', () => {
     const authService = new AuthService();
@@ -92,5 +101,66 @@ describe('AuthService Unit Tests - verifyUserToken', () => {
         const result = await authService.verifyUserToken(token);
 
         expect(result).toHaveProperty('id', 1);
+    });
+});
+
+describe('AuthService - resetPassword', () => {
+    const authService = new AuthService();
+    const rawToken = 'my-secret-reset-token';
+    const newPassword = 'newSecurePassword123';
+    
+   
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        process.env.JWT_SECRET = 'test';
+        process.env.JWT_EXPIRES_IN = '1h';
+    });
+
+    it('should successfully reset password if token is valid and not expired', async () => {
+        const mockUser = { id: 1, email: 'test@test.com', username: 'user' };
+        
+        (prisma.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
+        
+        (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
+        
+        (prisma.user.update as jest.Mock).mockResolvedValue({ ...mockUser, password_changed_at: new Date() });
+
+        const result = await authService.resetPassword(
+            { password: newPassword, passwordConfirm: newPassword }, 
+            rawToken
+        );
+
+        expect(prisma.user.findFirst).toHaveBeenCalledWith({
+            where: {
+                reset_token: hashedToken, 
+                reset_token_expires_at: { gt: expect.any(Date) } 
+            }
+        });
+
+        expect(prisma.user.update).toHaveBeenCalledWith({
+            where: { id: mockUser.id },
+            data: {
+                password_hash: 'hashed_new_password',
+                reset_token: null,
+                reset_token_expires_at: null,
+                password_changed_at: expect.any(Date)
+            }
+        });
+
+        expect(result).toHaveProperty('token', 'new_jwt_token');
+    });
+
+    it('should throw "Token is invalid or has expired" if user not found', async () => {
+     
+        (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+        await expect(authService.resetPassword(
+            { password: newPassword }, 
+            rawToken
+        )).rejects.toThrow('Token is invalid or has expired');
+        
+        expect(prisma.user.update).not.toHaveBeenCalled();
     });
 });
