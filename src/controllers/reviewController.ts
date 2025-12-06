@@ -20,11 +20,14 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
 export const getQuizReviews = catchAsync(
   async (req: Request, res: Response) => {
     const quizId = Number(req.params.quizId);
-    const reviews = await reviewService.getQuizReviews(quizId);
+    const query = reviewSchemas.getReviewsQuerySchema.parse(req.query);
+    const reviews = await reviewService.getQuizReviews(quizId, query);
 
     res.status(200).json({
       status: "success",
       results: reviews.length,
+      page: query.page,
+      limit: query.limit,
       reviews,
     });
   }
