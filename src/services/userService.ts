@@ -157,7 +157,7 @@ export default class UserService {
             GROUP BY u.user_id, u.username
             ORDER BY total_attempts DESC NULLS LAST
             LIMIT ${limit}
-            OFFSET ${offset}
+            OFFSET ${offset}    
         `;
     }
 
@@ -198,17 +198,17 @@ export default class UserService {
                 SELECT 
                     u.user_id,
                     u.username,
-                    COUNT(q.quiz_id) AS quiz_count
+                    COUNT(q.quiz_id)::int AS quiz_count
                 FROM 
                     "User" u
                 LEFT JOIN 
-                    "Quiz" q ON u.user_id = q.author_id
+                    "Quiz" q ON u.user_id = q.author_id AND q.is_active
                 GROUP BY 
                     u.user_id, u.username
             ),
             AverageQuizCount AS (
                 SELECT 
-                    AVG(quiz_count) AS avg_quiz_count
+                    AVG(quiz_count)::float AS avg_quiz_count
                 FROM 
                     AuthorQuizCounts
             )
@@ -269,15 +269,15 @@ export default class UserService {
             SELECT 
                 qa.user_id,
                 qa.quiz_id,
-                COUNT(qa.attempt_id)::int AS total_attempts,
-                MAX(qa.score) AS best_score,
+                COUNT(qa.quiz_attempt_id)::int AS total_attempts,
+                MAX(qa.score)::int AS best_score,
                 MAX(qa.finished_at) AS last_attempt_date,
                 (SELECT score 
                 FROM "QuizAttempt" qa2 
                 WHERE qa2.user_id = qa.user_id 
                     AND qa2.quiz_id = qa.quiz_id 
                 ORDER BY started_at DESC 
-                LIMIT 1) AS last_score
+                LIMIT 1)::int AS last_score
             FROM "QuizAttempt" qa
             WHERE qa.user_id = ${userId} AND qa.quiz_id = ${quizId}
             GROUP BY qa.user_id, qa.quiz_id;
