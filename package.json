@@ -19,7 +19,8 @@
   },
   "scripts": {
     "test": "dotenv -e .env.test -- jest",
-    "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy"
+    "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
+    "start": "nodemon --exec tsx src/server.ts"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
