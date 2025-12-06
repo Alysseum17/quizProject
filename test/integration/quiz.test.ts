@@ -3,6 +3,23 @@ import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
 
+const createTestQuiz = async (authorId: number, title = 'Test Quiz', attempt_limit?: number) => {
+    return await prisma.quiz.create({
+        data: {
+            title,
+            author_id: authorId,
+            attempt_limit,
+            questions: {
+                create: [{
+                    question_text: 'Test Q',
+                    question_type: 'single_choice',
+                    answer_options: { create: [{ answer_text: 'A', is_correct: true }] }
+                }]
+            }
+        },
+        include: { questions: { include: { answer_options: true } } }
+    });
+};
 
 describe('Global Quiz Integration Tests', () => {
     let token: string;
@@ -114,7 +131,7 @@ describe('Global Quiz Integration Tests', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({ title: 'Updated Title' });
              expect(response.status).toBe(200);
-             expect(response.body.updatedItem.title).toBe('Updated Title');
+             expect(response.body.quiz.title).toBe('Updated Title');
         });
 
         it('DELETE /:id - should soft delete', async () => {
@@ -122,9 +139,75 @@ describe('Global Quiz Integration Tests', () => {
                 .delete(`/api/quizzes/${createdQuizId}`)
                 .set('Authorization', `Bearer ${token}`)
                 .send({ is_active: false });
-             
-             expect(response.status).toBe(200); 
-             expect(response.text).toBe('Item soft-deleted successfully');
+             console.log('DEBUG BODY:', JSON.stringify(response.body, null, 2));
+             expect(response.status).toBe(200);
+             expect(response.body.quiz.is_active).toBe(false);
+             expect(response.body.message).toBe('Quiz soft-deleted successfully');
+        });
+    });
+    describe('Quiz errors handling', () => {
+        it('GET /:id - should return 404 for non-existent quiz', async () => {
+            const response = await request(app).get('/api/quizzes/999999');
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz not found');
+        });
+        it('PUT /:id - should return 404 when updating non-existent quiz', async () => {
+            const response = await request(app)
+                .put('/api/quizzes/999999')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ title: 'Non-existent Quiz' });
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz not found');
+        });
+        it('DELETE /:id - should return 404 when deleting non-existent quiz', async () => {
+            const response = await request(app)
+                .delete('/api/quizzes/999999')
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz not found');
+        });
+        it('PUT /:id - should return 403 when updating quiz not owned by user', async () => {
+            const anotherUser = await prisma.user.create({
+                data: {
+                    username: 'another_user',
+                    email: 'another_user@example.com',
+                    password_hash: 'hashed_placeholder'
+                }
+            });
+            const quiz = await prisma.quiz.create({
+                data: {
+                    title: 'Another User Quiz',
+                    author_id: anotherUser.id
+                }
+            });
+            const response = await request(app)
+                .put(`/api/quizzes/${quiz.id}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ title: 'Hacked Title' });
+            expect(response.status).toBe(403);
+            expect(response.body.message).toBe('You do not have permission to update this quiz');
+        });
+        it('DELETE /:id - should return 403 when deleting quiz not owned by user', async () => {
+            const anotherUser = await prisma.user.create({
+                data: {
+                    username: 'third_user',
+                    email: 'third_user@example.com',
+                    password_hash: 'hashed_placeholder'
+                }
+            });
+            const quiz = await prisma.quiz.create({
+                data: {
+                    title: 'Third User Quiz',
+                    author_id: anotherUser.id
+                }
+            });
+            const response = await request(app)
+                .delete(`/api/quizzes/${quiz.id}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            expect(response.status).toBe(403);
+            expect(response.body.message).toBe('You do not have permission to delete this quiz');
         });
     });
     describe('Quiz Attempt Flow', () => {
@@ -207,6 +290,93 @@ describe('Global Quiz Integration Tests', () => {
             expect(response.body.results.questionResponses[0].selectedAnswers.length).toBe(1);
             expect(response.body.results.questionResponses[0].selectedAnswers[0]).toHaveProperty('answerText', 'Paris');
             expect(response.body.results.questionResponses[0].selectedAnswers[0]).toHaveProperty('isCorrect', true);
+        });
+    });
+    describe('Quiz Attempt Errors Handling', () => {
+        it('POST /start - should return 404 when starting attempt for non-existent quiz', async () => {
+            const response = await request(app)
+                .post('/api/quizzes/999999/start')
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz not found');
+        });
+        it('POST /start - should return 400 when starting attempt for a quiz that is already started', async () => {
+            const quiz = await createTestQuiz(userId, 'Ongoing Attempt Quiz');
+            await request(app)
+                .post(`/api/quizzes/${quiz.id}/start`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            const secondStartResponse = await request(app)
+                .post(`/api/quizzes/${quiz.id}/start`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            expect(secondStartResponse.status).toBe(400);
+            expect(secondStartResponse.body.message).toBe('You have an ongoing attempt for this quiz');
+        });
+        it('POST /start - should return 400 when starting attempt exceeding attempt limit', async () => {
+            const quiz = await createTestQuiz(userId, 'Limited Attempt Quiz', 1);
+            await request(app)
+                .post(`/api/quizzes/${quiz.id}/start`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            const secondAttemptResponse = await request(app)
+                .post(`/api/quizzes/${quiz.id}/start`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            console.log('DEBUG RESPONSE BODY:', JSON.stringify(secondAttemptResponse.body, null, 2));
+            expect(secondAttemptResponse.status).toBe(400);
+            expect(secondAttemptResponse.body.message).toBe('Attempt limit reached for this quiz');
+        });
+        it('POST /submit - should return 404 when submitting non-existent attempt', async () => {
+            const response = await request(app)
+                .post('/api/quizzes/attempts/999999/submit')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    answers: [
+                        {
+                            question_id: 1,
+                            selected_option_ids: [1]
+                        }
+                    ]
+                });
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz attempt not found');
+        });
+        it('GET /results - should return 404 when getting results for non-existent attempt', async () => {
+            const response = await request(app)
+                .get('/api/quizzes/attempts/999999/results')
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Quiz attempt not found');
+        });
+        it('POST /submit - should return 400 when submitting after attempt is finished', async () => {
+            const quiz = await createTestQuiz(userId, 'Finished Attempt Quiz');
+            const realQuestionId = quiz.questions[0].id;
+            const realAnswerOptionId = quiz.questions[0].answer_options.find((opt) => opt.is_correct)?.id;
+            const startResponse = await request(app)
+                .post(`/api/quizzes/${quiz.id}/start`)
+                .set('Authorization', `Bearer ${token}`)
+                .send();
+            const finishedAttemptId = startResponse.body.attempt.id;
+            await prisma.quizAttempt.update({
+                where: { id: finishedAttemptId },
+                data: { finished_at: new Date() }
+            });
+            const submitResponse = await request(app)
+                .post(`/api/quizzes/attempts/${finishedAttemptId}/submit`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    answers: [
+                        {
+                            question_id: realQuestionId,
+                            selected_option_ids: [realAnswerOptionId!]
+                        }
+                    ]
+                });
+            expect(submitResponse.status).toBe(400);
+            expect(submitResponse.body.message).toBe('This attempt is already submitted');
         });
     });
 });

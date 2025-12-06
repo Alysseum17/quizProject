@@ -5,6 +5,7 @@ import * as quizSchemas from '../schemas/quiz.schema.js';
 import catchAsync from '../utils/catchAsync.js';
 import QuizService from '../services/quizService.js';
 import AppError from '../utils/appError.js';
+import { stat } from 'fs';
 
 const model = prisma.quiz;
 const quizService = new QuizService();
@@ -20,12 +21,23 @@ export const findQuizByName = catchAsync(async (req:Request, res:Response, next:
 });
 export const createQuiz = handlerFactory.createOne(model, quizSchemas.quizCreateSchema);
 
-export const updateQuiz = handlerFactory.updateOne(model, quizSchemas.quizUpdateSchema);
+export const updateQuiz = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const { id } = req.params;
+    const data = quizSchemas.quizUpdateSchema.parse(req.body);
+    const userId = (req as any).user.id;
+    const quiz = await quizService.updateQuiz(+id, data, userId);
+    res.status(200).json({ quiz });
+});
 
-export const softDeleteQuiz = handlerFactory.softDelete(model);
-
-
-
+export const softDeleteQuiz = catchAsync(async (req:Request, res:Response, next: NextFunction) => {
+    const { id } = req.params;
+    const userId = (req as any).user.id;
+    const quiz = await quizService.softDeleteQuiz(+id, userId);
+    res.status(200).json({
+        message: 'Quiz soft-deleted successfully',
+        quiz
+    })
+});
 export const getSortedQuizByRating = catchAsync(async (req:Request, res:Response) => {
     const data = quizSchemas.quizQuerySchema.parse(req.query);
     const { limit, sort, page, rating } = data;
