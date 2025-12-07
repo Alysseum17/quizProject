@@ -1,4 +1,4 @@
-import { Prisma, Question } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {prisma} from '../prisma.js'
 import AppError from '../utils/appError.js';        
 
@@ -37,6 +37,10 @@ interface Answer {
     free_text_answer?: string;
 };
 
+type QuestionWithOptions = Prisma.QuestionGetPayload<{
+  include: { answer_options: true }
+}>;
+
 export default class QuizService {
     private async verifyQuizOwnership(tx: any, quizId: number, userId: number): Promise<void> {
         const existingQuiz = await tx.quiz.findUnique({ where: { id: quizId } });
@@ -47,7 +51,7 @@ export default class QuizService {
             throw new AppError('You do not have permission to modify this quiz', 403);
         }
     }
-    private calculateAnswerScore(question: Question, selected_option_ids: number[] | undefined, free_text_answer?: string): number {
+    private calculateAnswerScore(question: QuestionWithOptions, selected_option_ids: number[] | undefined, free_text_answer?: string): number {
         let answerScore = 0;
         if (question.question_type === 'free_text') {
             const correctAnswerOption = question.answer_options[0];
