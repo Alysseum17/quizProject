@@ -1,6 +1,7 @@
 import { Difficulty, QuestionType } from '@prisma/client';
+import 'dotenv/config';
 import {Prisma} from '@prisma/client';
-import {prisma} from '../src/prisma';
+import {prisma} from '../src/prisma.js';
 
 async function main() {
   console.log('Starting database seeding...');
@@ -217,14 +218,13 @@ const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
 ];
 
   for (const table of tables) {
-    // ✅ TypeScript перевірить, що model існує
-    await prisma.$executeRaw`
+    await prisma.$executeRawUnsafe(`
         SELECT setval(
-            pg_get_serial_sequence(${table.model}, ${table.pk}), 
-            COALESCE((SELECT MAX(${Prisma.raw(`"${table.pk}"`)} ) FROM ${Prisma.raw(`"${table.model}"`)}), 0) + 1, 
+            pg_get_serial_sequence('"${table.model}"', '${table.pk}'),
+            COALESCE((SELECT MAX("${table.pk}") FROM "${table.model}"), 0) + 1,
             false
         );
-    `;
+    `);
 }
 
   console.log('Auto-increment sequences reset.');
