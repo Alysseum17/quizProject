@@ -78,26 +78,22 @@ export default class AuthService {
             throw new AppError('There is no user with that email address.', 404);
         }
         const {resetToken, reset_token_expires_at} = this.createPasswordResetToken();
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                reset_token: crypto.createHash('sha256').update(resetToken).digest('hex'),
-                reset_token_expires_at
-            }
-        });
-       const resetURL = `${protocol}://${host}/api/user/resetPassword/${resetToken}`;
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const resetURL = `${protocol}://${host}/api/user/resetPassword/${resetToken}`;
+        await prisma.$transaction(async (tx) => {
+            await tx.user.update({
+                where: { id: user.id },
+                data: {
+                    reset_token: hashedToken,
+                    reset_token_expires_at
+                }
+            });
            try {
                await new Email(user, resetURL).sendPasswordReset();
            } catch (err) {
-               await prisma.user.update({
-                   where: { id: user.id },
-                   data: {
-                       reset_token: null,
-                       reset_token_expires_at: null
-                   }
-               });
                throw new AppError('There was an error sending the email. Try again later!', 500);
            }
+        });
     }
     async resetPassword(data: any, token: string) {
         const { password} = data;
