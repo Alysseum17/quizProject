@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, Question } from '@prisma/client';
 import {prisma} from '../prisma.js'
 import AppError from '../utils/appError.js';        
 
@@ -36,7 +36,7 @@ interface Answer {
     selected_option_ids?: number[];
     free_text_answer?: string;
 };
-    
+
 export default class QuizService {
     private async verifyQuizOwnership(tx: any, quizId: number, userId: number): Promise<void> {
         const existingQuiz = await tx.quiz.findUnique({ where: { id: quizId } });
@@ -47,6 +47,45 @@ export default class QuizService {
             throw new AppError('You do not have permission to modify this quiz', 403);
         }
     }
+    private calculateAnswerScore(question: Question, selected_option_ids: number[] | undefined, free_text_answer?: string): number {
+        let answerScore = 0;
+        if (question.question_type === 'free_text') {
+            const correctAnswerOption = question.answer_options[0];
+            const correctAnswerText = correctAnswerOption ? correctAnswerOption.answer_text : '';
+            if( free_text_answer && free_text_answer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim()) {
+                answerScore = question.points;
+            } else {
+                answerScore = 0;
+            }
+        }  else { 
+            if (selected_option_ids) {
+                const correctOptions = question.answer_options.filter((o: any) => o.is_correct);
+                const totalCorrectOptionsCount = correctOptions.length;
+                let correctlySelectedCount = 0;
+                let wronglySelectedCount = 0;
+                for (const selectedId of selected_option_ids) {
+                    const option = question.answer_options.find((o: any) => o.id === selectedId);
+                    if (!option) {
+                        throw new AppError(`Option ID ${selectedId} does not belong to question ${question.id}`, 400);
+                    }
+                    if (option.is_correct) {
+                        correctlySelectedCount++;
+                    } else {
+                        wronglySelectedCount++;
+                    }
+                }
+                if (totalCorrectOptionsCount === 0) {
+                     answerScore = 0;
+                } else if (wronglySelectedCount > 0) {
+                    answerScore = 0;
+                } else {
+                    answerScore = question.points * (correctlySelectedCount / totalCorrectOptionsCount);
+                }
+            }
+        }
+        return answerScore;
+    }
+
     async findQuizByName(name: string) {
         const quizzes = await prisma.quiz.findMany({
             where: { title: { contains: name } },
@@ -128,7 +167,7 @@ export default class QuizService {
         `;
         return quizzes;
     }
-    async createQuizComplex(quizData: any, authorId: number) {
+    async createQuizComplex(quizData: QuizData, authorId: number) {
         return await prisma.$transaction(async (tx) => {
             const { title, quiz_description,  attempt_limit, time_limit, difficulty, questions } = quizData;
             const newQuiz = await tx.quiz.create({
@@ -152,12 +191,12 @@ export default class QuizService {
                     }
                 });
                 for (const option of options) {
-                    const { optionText, isCorrect } = option;
+                    const { optionText, is_correct } = option;
                     await tx.answerOption.create({
                         data: {
                             question_id: newQuestion.id,
                             answer_text: optionText,
-                            is_correct: isCorrect || false
+                            is_correct: is_correct || false
                         }
                     });
                 }
@@ -176,13 +215,13 @@ export default class QuizService {
         });
     }
     async startQuizAttempt(quizId: number, userId: number) {
-        return await prisma.$transaction(async (prisma) => {
-            const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+        return await prisma.$transaction(async (tx) => {
+            const quiz = await tx.quiz.findUnique({ where: { id: quizId } });
             if (!quiz) {
                 throw new AppError('Quiz not found', 404);
             }
 
-            const attemptCount = await prisma.quizAttempt.count({
+            const attemptCount = await tx.quizAttempt.count({
                 where: {
                     quiz_id: quizId,
                     user_id: userId
@@ -191,7 +230,7 @@ export default class QuizService {
             if (quiz.attempt_limit !== null && attemptCount >= quiz.attempt_limit) {
                 throw new AppError('Attempt limit reached for this quiz', 400);
             }
-            const existingAttempt = await prisma.quizAttempt.findFirst({
+            const existingAttempt = await tx.quizAttempt.findFirst({
                 where: {
                     quiz_id: quizId,
                     user_id: userId,
@@ -201,7 +240,7 @@ export default class QuizService {
             if (existingAttempt) {
                 throw new AppError('You have an ongoing attempt for this quiz', 400);
             }
-            return await prisma.quizAttempt.create({
+            return await tx.quizAttempt.create({
                 data: {
                     quiz_id: quizId,
                     user_id: userId,
@@ -223,9 +262,8 @@ export default class QuizService {
             let totalQuizScore = 0; 
 
             for (const answer of answers) {
-                let { question_id, selected_option_ids } = answer;
+                let { question_id, selected_option_ids, free_text_answer } = answer;
                 let answerScore = 0;
-                let free_text_answer = '';
                 const question = await tx.question.findUnique({ 
                     where: { id: question_id },
                     include: { answer_options: true }
@@ -234,50 +272,12 @@ export default class QuizService {
                 if (!question) {
                     throw new AppError(`Question with ID ${question_id} not found`, 404);
                 }
-                if (question.question_type === 'free_text') {
-                    free_text_answer = answer.free_text_answer || '';
-                    const correctAnswerOption = question.answer_options[0];
-                    const correctAnswerText = correctAnswerOption ? correctAnswerOption.answer_text : '';
-                    if( free_text_answer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim()) {
-                        answerScore = question.points;
-                        if(!selected_option_ids) {
-                            selected_option_ids = [];
-                        }
-                        selected_option_ids.push(correctAnswerOption.id);
-                    } else {
-                        answerScore = 0;
-                    }
-                }  else { 
-                    if (selected_option_ids) {
-                    const correctOptions = question.answer_options.filter(o => o.is_correct);
-                    const totalCorrectOptionsCount = correctOptions.length;
-                    let correctlySelectedCount = 0;
-                    let wronglySelectedCount = 0;
-                    for (const selectedId of selected_option_ids) {
-                        const option = question.answer_options.find(o => o.id === selectedId);
-                        if (!option) {
-                            throw new AppError(`Option ID ${selectedId} does not belong to question ${question_id}`, 400);
-                        }
-                        if (option.is_correct) {
-                            correctlySelectedCount++;
-                        } else {
-                            wronglySelectedCount++;
-                        }
-                    }
-                    if (totalCorrectOptionsCount === 0) {
-                         answerScore = 0;
-                    } else if (wronglySelectedCount > 0) {
-                        answerScore = 0;
-                    } else {
-                        answerScore = question.points * (correctlySelectedCount / totalCorrectOptionsCount);
-                    }
-                }
-            }
+                answerScore = this.calculateAnswerScore(question, selected_option_ids, free_text_answer);
                 totalQuizScore += answerScore;
 
                 const questionResponse = await tx.questionResponse.create({
                     data: {
-                        free_text_answer,
+                        free_text_answer: free_text_answer || null,
                         earned_points: answerScore,
                         question_id,
                         quiz_attempt_id: attemptId

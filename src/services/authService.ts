@@ -21,7 +21,7 @@ export default class AuthService {
     }
     createPasswordResetToken() {
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const reset_token_expires_at = new Date(Date.now() + 10 * 60 * 1000);
+        const reset_token_expires_at = new Date(Date.now() + Number(process.env.RESET_TOKEN_EXPIRY_MINUTES) * 60 * 1000);
         return { resetToken,  reset_token_expires_at };
     }
     async verifyUserToken(token: string) {
