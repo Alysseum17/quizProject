@@ -12,3 +12,10 @@ export const updateReviewSchema = zod.object({
   rating: zod.number().min(1).max(5).optional(),
   review_text: zod.string().optional(),
 });
+
+export const getReviewsQuerySchema = zod.object({
+  sort: zod.enum(["created_at", "rating"]).default("created_at"),
+  order: zod.enum(["asc", "desc"]).default("desc"),
+  page: zod.coerce.number().min(1).default(1),
+  limit: zod.coerce.number().min(1).default(10),
+});

@@ -32,7 +32,17 @@ export default class ReviewService {
     });
   }
 
-  async getQuizReviews(quizId: number) {
+  async getQuizReviews(
+    quizId: number,
+    query: {
+      sort: "created_at" | "rating";
+      order: "asc" | "desc";
+      page: number;
+      limit: number;
+    }
+  ) {
+    const offset = (query.page - 1) * query.limit;
+
     return await prisma.review.findMany({
       where: { quiz_id: quizId },
       include: {
@@ -43,7 +53,11 @@ export default class ReviewService {
           },
         },
       },
-      orderBy: { created_at: "desc" },
+      orderBy: {
+        [query.sort]: query.order,
+      },
+      take: query.limit,
+      skip: offset,
     });
   }
 
