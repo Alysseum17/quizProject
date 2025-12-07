@@ -6,14 +6,47 @@ interface SortedQuizByRating {
     title: string;
     average_rating: number;
 }
-
-type Answer = {
+interface updateQuizData {
+    title?: string;
+    quiz_description?: string;
+    attempt_limit?: number | null;
+    time_limit?: number | null;
+    difficulty?: 'easy' | 'medium' | 'hard' | null;
+}
+interface QuizData {
+    title: string;
+    quiz_description?: string;
+    attempt_limit?: number | null;
+    time_limit?: number | null;
+    difficulty?: 'easy' | 'medium' | 'hard' | null;
+    questions: QuestionData[];
+}
+interface QuestionData {
+    question_text: string;
+    question_type: 'single_choice' | 'multiple_choice' | 'free_text';
+    points?: number;
+    options: OptionData[];
+}
+interface OptionData {
+    optionText: string;
+    is_correct?: boolean;
+}
+interface Answer {
     question_id: number;
     selected_option_ids?: number[];
     free_text_answer?: string;
 };
     
 export default class QuizService {
+    private async verifyQuizOwnership(tx: any, quizId: number, userId: number): Promise<void> {
+        const existingQuiz = await tx.quiz.findUnique({ where: { id: quizId } });
+        if (!existingQuiz) {
+            throw new AppError('Quiz not found', 404);
+        }
+        if (existingQuiz.author_id !== userId) {
+            throw new AppError('You do not have permission to modify this quiz', 403);
+        }
+    }
     async findQuizByName(name: string) {
         const quizzes = await prisma.quiz.findMany({
             where: { title: { contains: name } },
@@ -63,32 +96,24 @@ export default class QuizService {
         });
         return quiz;
     }
-    async updateQuiz(quizId: number, quizData: any, userId: number) {
-        const existingQuiz = await prisma.quiz.findUnique({ where: { id: quizId } });
-        if (!existingQuiz) {
-            throw new AppError('Quiz not found', 404);
-        }
-        if (existingQuiz.author_id !== userId) {
-            throw new AppError('You do not have permission to update this quiz', 403);
-        }
-        return await prisma.quiz.update({
+    async updateQuiz(quizId: number, quizData: updateQuizData, userId: number) {
+        return await prisma.$transaction(async (tx) => {
+        await this.verifyQuizOwnership(tx, quizId, userId);
+        return await tx.quiz.update({
             where: { id: quizId },
             data: quizData
         });
-    }
+    });
+}
     async softDeleteQuiz(quizId: number, userId: number) {
-        const existingQuiz = await prisma.quiz.findUnique({ where: { id: quizId } });
-        if (!existingQuiz) {
-            throw new AppError('Quiz not found', 404);
-        }
-        if (existingQuiz.author_id !== userId) {
-            throw new AppError('You do not have permission to delete this quiz', 403);
-        }
-        return await prisma.quiz.update({
+        return await prisma.$transaction(async (tx) => {
+        await this.verifyQuizOwnership(tx, quizId, userId);
+        return await tx.quiz.update({
             where: { id: quizId },
             data: { is_active: false }
         });
-    }
+    });
+}
     async getSortedQuizByRating(limit: number, sort: 'asc' | 'desc', page: number, rating: { gte: number; lte: number }) {
         const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
         const offset = (page - 1) * limit;
@@ -104,9 +129,9 @@ export default class QuizService {
         return quizzes;
     }
     async createQuizComplex(quizData: any, authorId: number) {
-        return await prisma.$transaction(async (prisma) => {
+        return await prisma.$transaction(async (tx) => {
             const { title, quiz_description,  attempt_limit, time_limit, difficulty, questions } = quizData;
-            const newQuiz = await prisma.quiz.create({
+            const newQuiz = await tx.quiz.create({
                 data: {
                     title,
                     quiz_description, 
@@ -118,7 +143,7 @@ export default class QuizService {
             }); 
             for (const questionData of questions) {
                 const { question_text, question_type, options } = questionData;
-                const newQuestion = await prisma.question.create({
+                const newQuestion = await tx.question.create({
                     data: {
                         quiz_id: newQuiz.id,
                         question_text,
@@ -128,7 +153,7 @@ export default class QuizService {
                 });
                 for (const option of options) {
                     const { optionText, isCorrect } = option;
-                    await prisma.answerOption.create({
+                    await tx.answerOption.create({
                         data: {
                             question_id: newQuestion.id,
                             answer_text: optionText,
@@ -137,7 +162,7 @@ export default class QuizService {
                     });
                 }
             }
-            return await prisma.quiz.findUnique({
+            return await tx.quiz.findUnique({
                 where: { id: newQuiz.id },
                 include: {
                     questions: {
