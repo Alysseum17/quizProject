@@ -1,5 +1,7 @@
 import { Difficulty, QuestionType } from '@prisma/client';
-import {prisma} from '../src/prisma';
+import 'dotenv/config';
+import {Prisma} from '@prisma/client';
+import {prisma} from '../src/prisma.js';
 
 async function main() {
   console.log('Starting database seeding...');
@@ -205,21 +207,25 @@ async function main() {
 
 
   
-const tables = [
-    { name: 'User', pk: 'user_id' },
-    { name: 'Quiz', pk: 'quiz_id' },
-    { name: 'Review', pk: 'review_id' },
-    { name: 'Question', pk: 'question_id' },
-    { name: 'AnswerOption', pk: 'answer_option_id' },
-    { name: 'QuizAttempt', pk: 'quiz_attempt_id' },
-    { name: 'QuestionResponse', pk: 'question_response_id' },
-  ];
+const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
+    { model: 'User', pk: 'user_id' },
+    { model: 'Quiz', pk: 'quiz_id' },
+    { model: 'Review', pk: 'review_id' },
+    { model: 'Question', pk: 'question_id' },
+    { model: 'AnswerOption', pk: 'answer_option_id' },
+    { model: 'QuizAttempt', pk: 'quiz_attempt_id' },
+    { model: 'QuestionResponse', pk: 'question_response_id' },
+];
 
   for (const table of tables) {
-    await prisma.$executeRawUnsafe(
-      `SELECT setval(pg_get_serial_sequence('"${table.name}"', '${table.pk}'), coalesce(max("${table.pk}")+1, 1), false) FROM "${table.name}";`
-    );
-  }
+    await prisma.$executeRawUnsafe(`
+        SELECT setval(
+            pg_get_serial_sequence('"${table.model}"', '${table.pk}'),
+            COALESCE((SELECT MAX("${table.pk}") FROM "${table.model}"), 0) + 1,
+            false
+        );
+    `);
+}
 
   console.log('Auto-increment sequences reset.');
   console.log('Seeding finished successfully!');
