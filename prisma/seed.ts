@@ -1,7 +1,7 @@
 import { Difficulty, QuestionType } from '@prisma/client';
 import 'dotenv/config';
-import {Prisma} from '@prisma/client';
-import {prisma} from '../src/prisma.js';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../src/prisma.js';
 
 async function main() {
   console.log('Starting database seeding...');
@@ -96,7 +96,7 @@ async function main() {
   });
   console.log('Questions created');
 
- await prisma.answerOption.createMany({
+  await prisma.answerOption.createMany({
     data: [
       { id: 1, question_id: 1, answer_text: 'SELECT', is_correct: true },
       { id: 2, question_id: 1, answer_text: 'UPDATE', is_correct: false },
@@ -107,7 +107,7 @@ async function main() {
       { id: 7, question_id: 2, answer_text: 'GROUP BY', is_correct: false },
       { id: 8, question_id: 3, answer_text: 'Join', is_correct: true },
       { id: 9, question_id: 4, answer_text: '1989', is_correct: false },
-      { id: 10, question_id: 4, answer_text: '1991', is_correct: true }, 
+      { id: 10, question_id: 4, answer_text: '1991', is_correct: true },
       { id: 11, question_id: 4, answer_text: '1996', is_correct: false },
       { id: 12, question_id: 5, answer_text: 'Ivan Vyhovsky', is_correct: true },
       { id: 13, question_id: 6, answer_text: 'Fyodor Dostoevsky', is_correct: false },
@@ -157,7 +157,7 @@ async function main() {
   });
   console.log('Answer options created');
 
- await prisma.quizAttempt.createMany({
+  await prisma.quizAttempt.createMany({
     data: [
       { id: 1, user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T17:10:00Z'), finished_at: new Date('2025-10-14T17:18:30Z'), score: 85 },
       { id: 2, user_id: 1, quiz_id: 1, started_at: new Date('2025-10-14T19:00:00Z'), finished_at: new Date('2025-10-14T19:15:00Z'), score: 70 },
@@ -185,12 +185,12 @@ async function main() {
   });
   console.log('Question responses created');
 
- await prisma.selectedAnswer.createMany({
+  await prisma.selectedAnswer.createMany({
     data: [
       { question_response_id: 1, answer_option_id: 1 },
       { question_response_id: 2, answer_option_id: 4 },
       { question_response_id: 2, answer_option_id: 5 },
-      { question_response_id: 4, answer_option_id: 10 }, 
+      { question_response_id: 4, answer_option_id: 10 },
     ]
   });
   console.log('Selected answers created');
@@ -198,16 +198,16 @@ async function main() {
   await prisma.bookmark.createMany({
     data: [
       { user_id: 1, quiz_id: 2 },
-      { user_id: 1, quiz_id: 3 },
-      { user_id: 2, quiz_id: 1 },
+      { user_id: 1, quiz_id: 3, note: 'Review this quiz before the exam.' },
+      { user_id: 2, quiz_id: 1, note: 'Important for my studies.' },
       { user_id: 5, quiz_id: 10 },
     ]
   });
   console.log('Bookmarks created');
 
 
-  
-const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
+
+  const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
     { model: 'User', pk: 'user_id' },
     { model: 'Quiz', pk: 'quiz_id' },
     { model: 'Review', pk: 'review_id' },
@@ -215,7 +215,7 @@ const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
     { model: 'AnswerOption', pk: 'answer_option_id' },
     { model: 'QuizAttempt', pk: 'quiz_attempt_id' },
     { model: 'QuestionResponse', pk: 'question_response_id' },
-];
+  ];
 
   for (const table of tables) {
     await prisma.$executeRawUnsafe(`
@@ -225,7 +225,7 @@ const tables: Array<{ model: Prisma.ModelName; pk: string }> = [
             false
         );
     `);
-}
+  }
 
   console.log('Auto-increment sequences reset.');
   console.log('Seeding finished successfully!');

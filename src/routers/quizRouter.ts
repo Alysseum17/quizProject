@@ -1,6 +1,6 @@
 import express from "express";
 import * as quizController from "../controllers/quizController.js";
-import { protect } from "../controllers/authCotroller.js";
+import { protect } from "../controllers/authController.js";
 import questionRouter from "./questionRouter.js";
 
 const router = express.Router();
@@ -16,5 +16,7 @@ router.post("/complex", protect, quizController.createQuizComplex);
 router.post("/:quizId/start", protect, quizController.startQuizAttempt);
 router.put("/:id", quizController.updateQuiz);
 router.delete("/:id", quizController.softDeleteQuiz);
+router.get('/analytics/top-bookmarked', quizController.getTopBookmarkedQuizzes);
+
 
 export default router;
