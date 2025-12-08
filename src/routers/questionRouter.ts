@@ -8,6 +8,8 @@ router.use(protect);
 
 router.route("/").post(questionController.createQuestion);
 
+router.get("/stats", questionController.getQuestionStats);
+
 router
   .route("/:id")
   .patch(questionController.updateQuestion)

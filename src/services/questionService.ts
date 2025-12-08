@@ -83,4 +83,32 @@ export default class QuestionService {
 
     await prisma.question.delete({ where: { id: questionId } });
   }
+
+  async getQuestionStats(quizId: number) {
+    const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+    if (!quiz) throw new AppError("Quiz not found", 404);
+
+    const stats = await prisma.question.groupBy({
+      by: ["question_type"],
+      where: {
+        quiz_id: quizId,
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        points: true,
+      },
+      _avg: {
+        points: true,
+      },
+      _min: {
+        points: true,
+      },
+      _max: {
+        points: true,
+      },
+    });
+    return stats;
+  }
 }
