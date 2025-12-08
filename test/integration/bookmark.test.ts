@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
+import { cleanupDatabase } from '../helpers/cleanup.js';
 
 describe('Bookmark Integration Tests', () => {
     let token: string;
@@ -11,10 +12,7 @@ describe('Bookmark Integration Tests', () => {
     let inactiveQuizId: number;
 
     beforeAll(async () => {
-        await prisma.bookmark.deleteMany();
-        await prisma.quiz.deleteMany();
-        await prisma.user.deleteMany();
-
+        await cleanupDatabase();
         const user = await prisma.user.create({
             data: {
                 username: 'Bookmarker',

@@ -2,6 +2,8 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
+import { cleanupDatabase } from '../helpers/cleanup.js';
+
 
 const createTestQuiz = async (authorId: number, title = 'Test Quiz', attempt_limit?: number) => {
     return await prisma.quiz.create({
@@ -25,13 +27,7 @@ describe('Global Quiz Integration Tests', () => {
     let token: string;
     let userId: number;
     beforeAll(async () => {
-        await prisma.selectedAnswer.deleteMany();
-        await prisma.questionResponse.deleteMany();
-        await prisma.quizAttempt.deleteMany();
-        await prisma.answerOption.deleteMany();
-        await prisma.question.deleteMany();
-        await prisma.quiz.deleteMany();
-        await prisma.user.deleteMany();
+        await cleanupDatabase();
 
         const user = await prisma.user.create({
             data: {
@@ -186,7 +182,7 @@ describe('Global Quiz Integration Tests', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({ title: 'Hacked Title' });
             expect(response.status).toBe(403);
-            expect(response.body.message).toBe('You do not have permission to update this quiz');
+            expect(response.body.message).toBe('You do not have permission to modify this quiz');
         });
         it('DELETE /:id - should return 403 when deleting quiz not owned by user', async () => {
             const anotherUser = await prisma.user.create({
@@ -207,7 +203,7 @@ describe('Global Quiz Integration Tests', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send();
             expect(response.status).toBe(403);
-            expect(response.body.message).toBe('You do not have permission to delete this quiz');
+            expect(response.body.message).toBe('You do not have permission to modify this quiz');
         });
     });
     describe('Quiz Attempt Flow', () => {

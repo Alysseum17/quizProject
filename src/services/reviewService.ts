@@ -1,11 +1,26 @@
 import { prisma } from "../prisma.js";
 import AppError from "../utils/appError.js";
 
+interface CreateReviewInput {
+  rating: number;
+  review_text?: string;
+}
+interface GetQuizReviewQuery {
+  sort: "created_at" | "rating";
+  order: "asc" | "desc";
+  page: number;
+  limit: number;
+}
+interface UpdateReviewInput {
+  rating?: number;
+  review_text?: string;
+}
+
 export default class ReviewService {
   async createReview(
     userId: number,
     quizId: number,
-    data: { rating: number; review_text?: string }
+    data: CreateReviewInput
   ) {
     const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
     if (!quiz) {
@@ -34,12 +49,7 @@ export default class ReviewService {
 
   async getQuizReviews(
     quizId: number,
-    query: {
-      sort: "created_at" | "rating";
-      order: "asc" | "desc";
-      page: number;
-      limit: number;
-    }
+    query: GetQuizReviewQuery
   ) {
     const offset = (query.page - 1) * query.limit;
 
@@ -77,7 +87,7 @@ export default class ReviewService {
   async updateReview(
     userId: number,
     reviewId: number,
-    data: { rating?: number; review_text?: string }
+    data: UpdateReviewInput
   ) {
     const review = await prisma.review.findUnique({ where: { id: reviewId } });
     if (!review) {

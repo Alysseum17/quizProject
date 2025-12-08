@@ -2,6 +2,8 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import { Email } from '../../src/utils/email.js';
+import { cleanupDatabase } from '../helpers/cleanup.js';
+
 
 jest.mock('../../src/utils/email.js', () => {
     return {
@@ -15,13 +17,7 @@ jest.mock('../../src/utils/email.js', () => {
 describe('Authentication Integration Tests', () => {
 
     beforeAll(async () => {
-        await prisma.selectedAnswer.deleteMany();
-        await prisma.questionResponse.deleteMany();
-        await prisma.quizAttempt.deleteMany();
-        await prisma.answerOption.deleteMany();
-        await prisma.question.deleteMany();
-        await prisma.quiz.deleteMany();
-        await prisma.user.deleteMany();
+        await cleanupDatabase();
     });
 
     afterAll(async () => {
@@ -120,7 +116,17 @@ describe('Authentication Integration Tests', () => {
             });
         });
     });
+    describe('Logout Flow', () => {
+        it('POST /logout - should logout the user', async () => {
+            const response = await request(app)
+                .post('/api/users/logout')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send();
 
+            expect(response.status).toBe(200);
+            expect(response.body.status).toBe('success');
+        });
+    });
     describe('Password Management Flow', () => {
         it('POST /update-password - should update password (authenticated)', async () => {
             const newPassword = 'newpassword123';

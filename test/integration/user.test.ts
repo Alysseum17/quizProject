@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
+import { cleanupDatabase } from '../helpers/cleanup.js';
 
 describe('User Profile & Analytics Integration Tests', () => {
     let token: string;
@@ -14,14 +15,7 @@ describe('User Profile & Analytics Integration Tests', () => {
     const QUIZ_TITLE = 'Analytics Test Quiz';
 
     beforeAll(async () => {
-        await prisma.selectedAnswer.deleteMany();
-        await prisma.questionResponse.deleteMany();
-        await prisma.quizAttempt.deleteMany();
-        await prisma.review.deleteMany();
-        await prisma.answerOption.deleteMany();
-        await prisma.question.deleteMany();
-        await prisma.quiz.deleteMany();
-        await prisma.user.deleteMany();
+        await cleanupDatabase();
 
         const mainUser = await prisma.user.create({
             data: {
