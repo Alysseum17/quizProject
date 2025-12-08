@@ -19,20 +19,22 @@ enum QuestionType {
 }
 
 model User {
-  id                     Int           @id @default(autoincrement()) @map("user_id")
-  username               String        @unique @db.VarChar(32)
-  email                  String        @unique @db.VarChar(255)
-  password_hash          String        @db.VarChar(255)
-  password_changed_at    DateTime?     @db.Timestamptz()
-  reset_token            String?       @db.VarChar(255)
-  reset_token_expires_at DateTime?     @db.Timestamptz()
-  avatar_url             String?       @db.VarChar(255)
-  created_at             DateTime      @default(now()) @db.Timestamptz()
-  is_active              Boolean       @default(true)
-  quizzes                Quiz[]
-  reviews                Review[]
-  quiz_attempts          QuizAttempt[]
-  bookmarks              Bookmark[]
+  id            Int      @id @default(autoincrement()) @map("user_id")
+  username      String   @unique @db.VarChar(32)
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  password_changed_at DateTime? @db.Timestamptz()
+  reset_token        String?  @db.VarChar(255)
+  reset_token_expires_at DateTime? @db.Timestamptz() 
+  avatar_url    String?  @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.Timestamptz()
+  is_active     Boolean  @default(true)
+  quizzes       Quiz[]
+  reviews       Review[]
+  quiz_attempts QuizAttempt[]
+  bookmarks     Bookmark[]
+
+  @@index([reset_token, reset_token_expires_at])
 }
 
 model Quiz {
@@ -53,6 +55,10 @@ model Quiz {
   reviews       Review[]
   quiz_attempts QuizAttempt[]
   bookmarks     Bookmark[]
+
+  @@index([author_id])
+  @@index([title])
+  @@index([created_at])
 }
 
 model Review {
@@ -67,6 +73,10 @@ model Review {
 
   quiz    Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
   quiz_id Int
+
+  @@index([quiz_id, created_at])
+  @@index([user_id])
+  @@unique([user_id, quiz_id])
 }
 
 model Question {
@@ -81,6 +91,8 @@ model Question {
 
   answer_options     AnswerOption[]
   question_responses QuestionResponse[]
+
+  @@index([quiz_id])
 }
 
 model AnswerOption {
@@ -92,6 +104,8 @@ model AnswerOption {
   question_id Int
 
   selected_answers SelectedAnswer[]
+
+  @@index([question_id])
 }
 
 model QuizAttempt {
@@ -107,6 +121,10 @@ model QuizAttempt {
   quiz_id Int
 
   question_responses QuestionResponse[]
+
+  @@index([user_id, quiz_id])
+  @@index([user_id, started_at])
+  @@index([quiz_id])
 }
 
 model QuestionResponse {
@@ -121,6 +139,9 @@ model QuestionResponse {
   question_id Int
 
   selected_answers SelectedAnswer[]
+
+  @@index([quiz_attempt_id])
+  @@index([question_id])
 }
 
 model SelectedAnswer {
@@ -145,4 +166,6 @@ model Bookmark {
   note String? @db.Text
 
   @@id([user_id, quiz_id])
+
+  @@index([user_id])
 }

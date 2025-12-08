@@ -18,7 +18,9 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "dotenv -e .env.test -- jest",
+    "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
+    "start": "nodemon --exec tsx src/server.ts"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
@@ -26,14 +28,18 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/hpp": "^0.2.7",
+    "@types/jest": "^30.0.0",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "@types/supertest": "^6.0.3",
     "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.11",
     "prisma": "^7.0.0",
     "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

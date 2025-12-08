@@ -3,6 +3,7 @@ import * as userSchemas from '../schemas/user.schema.js';
 import catchAsync from "../utils/catchAsync.js";
 import UserService from "../services/userService.js";
 import AppError from "../utils/appError.js";
+import { stat } from "fs";
 
 
 const userService = new UserService();
@@ -97,4 +98,22 @@ export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Respo
     const { limit, page } = query;
     const users = await userService.getHighPerformanceUsers(limit, page);
     res.status(200).json({ users });
+});
+
+export const getUserQuizStats = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const data = userSchemas.quizIdParamSchema.parse(req.params);
+    const userId = (req as any).user.id;
+    const { quizId } = data;
+    const stats = await userService.getUserQuizStats(userId, quizId);
+    if (stats.length === 0) {
+        return next(new AppError('No stats found for this user and quiz', 404));
+    }
+    res.status(200).json({ stats });
+});
+
+export const getUserLastActivities = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req as any).user.id;
+    const {limit, page} = userSchemas.queryUserSchema.parse(req.query);
+    const activities = await userService.getLastUserActivities(userId, limit, page);
+    res.status(200).json({ activities });
 });
