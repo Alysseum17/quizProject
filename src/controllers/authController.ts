@@ -59,6 +59,9 @@ export const protect = catchAsync(async (req: Request, res: Response, next: Next
     if (!currentUser) {
         return next(new AppError('The user belonging to this token does no longer exist.', 401));
     }
+    if(currentUser.is_active === false){
+        return next(new AppError('The user account has been deactivated.', 401));
+    }
     (req as any).user = currentUser;
     next();
 });

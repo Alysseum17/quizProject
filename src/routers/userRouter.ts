@@ -1,10 +1,12 @@
 import express from 'express';
 import * as userController from '../controllers/userController.js';
-import {protect} from '../controllers/authCotroller.js';
+import {protect} from '../controllers/authController.js';
 
 const router = express.Router();
 
 router.get('/me', protect, userController.getCurrentUser);
+router.get('/me/:quizId/stats', protect, userController.getUserQuizStats);
+router.get('/me/activities', protect, userController.getUserLastActivities);
 router.get('/email/:email', userController.findUserByEmail);
 router.get('/name/:name', userController.findUsersByName);
 router.get('/top/quiz-scores', userController.findTopUsersByQuizScore);

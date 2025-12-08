@@ -5,7 +5,7 @@ import zod from 'zod';
 export const quizCreateSchema = zod.object({
     title: zod.string().min(1, 'Title is required'),
     quiz_description: zod.string().optional(),
-    author_id: zod.coerce.number().int(),
+    author_id: zod.coerce.number().int().positive(),
     attempt_limit: zod.coerce.number().int().min(1).optional(),
     time_limit: zod.coerce.number().int().min(1).optional(),
     difficulty: zod.enum(['easy', 'medium', 'hard']).optional(),
@@ -52,13 +52,22 @@ export const quizComplexSchema = zod.object({
 });
 
 export const quizIdParamSchema = zod.object({
-    id: zod.coerce.number().int(),
+    quizId: zod.coerce.number().int().positive(),
 });
 
 export const quizAttemptIdParamSchema = zod.object({
-    quizId: zod.coerce.number().int(),
+    attemptId: zod.coerce.number().int().positive(),
 });
 
 export const quizNameParamSchema = zod.object({
     name: zod.string().min(1, 'Quiz name is required'),
 });
+
+export const quizAttemptSubmitSchema = zod.object({
+    answers: zod.array(zod.object({
+        question_id: zod.coerce.number().int().positive(),
+        selected_option_ids: zod.array(zod.coerce.number().int().positive()).optional(),
+        free_text_answer: zod.string().optional(),
+    })).min(1, 'At least one answer is required'),
+});
+
