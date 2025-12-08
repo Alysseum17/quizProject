@@ -60,7 +60,7 @@ export default class BookmarkService {
     async getMyBookmarks(userId: number, page: number, limit: number) {
         const offset = (page - 1) * limit;
 
-        const [total, bookmarks] = await prisma.$transaction([
+        const [total, bookmarks] = await Promise.all([
             prisma.bookmark.count({
                 where: { user_id: userId }
             }),
@@ -75,10 +75,18 @@ export default class BookmarkService {
                             difficulty: true,
                             time_limit: true,
                             author: {
-                                select: { username: true }
+                                select: {
+                                    id: true,
+                                    username: true,
+                                    avatar_url: true
+                                }
                             },
                             _count: {
-                                select: { questions: true }
+                                select: {
+                                    questions: true,
+                                    quiz_attempts: true,
+                                    reviews: true
+                                }
                             },
                             reviews: {
                                 select: { rating: true }
@@ -88,9 +96,7 @@ export default class BookmarkService {
                 },
                 skip: offset,
                 take: limit,
-                orderBy: {
-                    created_at: 'desc'
-                }
+                orderBy: { created_at: 'desc' }
             })
         ]);
 
@@ -109,11 +115,20 @@ export default class BookmarkService {
             };
         });
 
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+
         return {
             items,
-            total,
-            page,
-            limit
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNextPage,
+                hasPrevPage
+            }
         };
     }
 

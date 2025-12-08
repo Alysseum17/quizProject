@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(protect);
 router.get('/', bookmarkController.getMyBookmarks);
+router.get('/analytics/top', bookmarkController.getTopBookmarkedQuizzes);
 router.post('/:id', bookmarkController.addBookmark);
 router.delete('/:id', bookmarkController.removeBookmark);
 router.patch('/:id', bookmarkController.updateBookmarkNote);

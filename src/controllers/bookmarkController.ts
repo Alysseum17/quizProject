@@ -37,11 +37,36 @@ export const getMyBookmarks = catchAsync(async (req: Request, res: Response) => 
     res.status(200).json({
         status: 'success',
         results: data.items.length,
-        total: data.total,
+        pagination: data.pagination,
         data: {
             bookmarks: data.items
         }
     });
 });
 
+export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Response) => {
+    const stats = await bookmarkService.getTopBookmarkedQuizzes() as any[];
 
+    res.status(200).json({
+        status: 'success',
+        results: stats.length,
+        data: { stats }
+    });
+});
+
+export const updateBookmarkNote = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { id: quizId } = quizIdParamSchema.parse(req.params);
+    const { note } = req.body;
+
+    if (typeof note !== 'string') {
+        return res.status(400).json({ status: 'fail', message: 'Note must be a string' });
+    }
+
+    const bookmark = await bookmarkService.updateBookmarkNote(userId, quizId, note);
+
+    res.status(200).json({
+        status: 'success',
+        data: { bookmark }
+    });
+});
