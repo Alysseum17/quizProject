@@ -96,4 +96,33 @@ export default class ReviewService {
       },
     });
   }
+
+  async getReviewAnalytics() {
+    const results = await prisma.$queryRaw<any[]>`
+            SELECT 
+                q.title AS quiz_title,
+                u.username AS author_name,
+                COUNT(r.review_id)::int AS total_reviews,
+                ROUND(AVG(r.rating)::numeric, 1)::float AS average_rating,
+
+                SUM(CASE WHEN r.rating = 5 THEN 1 ELSE 0 END)::int AS count_5_stars,
+                SUM(CASE WHEN r.rating = 4 THEN 1 ELSE 0 END)::int AS count_4_stars,
+                SUM(CASE WHEN r.rating = 3 THEN 1 ELSE 0 END)::int AS count_3_stars,
+                SUM(CASE WHEN r.rating = 2 THEN 1 ELSE 0 END)::int AS count_2_stars,
+                SUM(CASE WHEN r.rating = 1 THEN 1 ELSE 0 END)::int AS count_1_stars,
+
+                ROUND(
+                    (SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(r.review_id), 0)) * 100, 
+                    1
+                )::float AS positive_percentage
+
+            FROM "Quiz" q
+            JOIN "Review" r ON q.quiz_id = r.quiz_id
+            JOIN "User" u ON q.author_id = u.user_id 
+            GROUP BY q.quiz_id, u.username
+            ORDER BY total_reviews DESC;
+        `;
+
+    return results;
+  }
 }
