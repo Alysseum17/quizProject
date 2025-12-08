@@ -7,7 +7,7 @@ const bookmarkService = new BookmarkService();
 
 export const addBookmark = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    const { id: quizId } = quizIdParamSchema.parse(req.params);
+    const { quizId } = quizIdParamSchema.parse(req.params);
 
     await bookmarkService.addBookmark(userId, quizId);
 
@@ -19,7 +19,7 @@ export const addBookmark = catchAsync(async (req: Request, res: Response) => {
 
 export const removeBookmark = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    const { id: quizId } = quizIdParamSchema.parse(req.params);
+    const { quizId } = quizIdParamSchema.parse(req.params);
 
     await bookmarkService.removeBookmark(userId, quizId);
     res.status(204).json({
@@ -44,19 +44,10 @@ export const getMyBookmarks = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
-export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Response) => {
-    const stats = await bookmarkService.getTopBookmarkedQuizzes() as any[];
-
-    res.status(200).json({
-        status: 'success',
-        results: stats.length,
-        data: { stats }
-    });
-});
 
 export const updateBookmarkNote = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    const { id: quizId } = quizIdParamSchema.parse(req.params);
+    const { quizId } = quizIdParamSchema.parse(req.params);
     const { note } = req.body;
 
     if (typeof note !== 'string') {

@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
-import {prisma} from '../prisma.js'
-import AppError from '../utils/appError.js';        
+import { prisma } from '../prisma.js'
+import AppError from '../utils/appError.js';
 
 interface SortedQuizByRating {
     title: string;
@@ -36,9 +36,15 @@ interface Answer {
     selected_option_ids?: number[];
     free_text_answer?: string;
 };
+interface getTopBookmarkedQuizzes {
+    quiz_id: number;
+    title: string;
+    bookmark_count: number;
+    author_name: string;
+}
 
 type QuestionWithOptions = Prisma.QuestionGetPayload<{
-  include: { answer_options: true }
+    include: { answer_options: true }
 }>;
 
 export default class QuizService {
@@ -56,12 +62,12 @@ export default class QuizService {
         if (question.question_type === 'free_text') {
             const correctAnswerOption = question.answer_options[0];
             const correctAnswerText = correctAnswerOption ? correctAnswerOption.answer_text : '';
-            if( free_text_answer && free_text_answer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim()) {
+            if (free_text_answer && free_text_answer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim()) {
                 answerScore = question.points;
             } else {
                 answerScore = 0;
             }
-        }  else { 
+        } else {
             if (selected_option_ids) {
                 const correctOptions = question.answer_options.filter((o: any) => o.is_correct);
                 const totalCorrectOptionsCount = correctOptions.length;
@@ -79,7 +85,7 @@ export default class QuizService {
                     }
                 }
                 if (totalCorrectOptionsCount === 0) {
-                     answerScore = 0;
+                    answerScore = 0;
                 } else if (wronglySelectedCount > 0) {
                     answerScore = 0;
                 } else {
@@ -141,22 +147,22 @@ export default class QuizService {
     }
     async updateQuiz(quizId: number, quizData: updateQuizData, userId: number) {
         return await prisma.$transaction(async (tx) => {
-        await this.verifyQuizOwnership(tx, quizId, userId);
-        return await tx.quiz.update({
-            where: { id: quizId },
-            data: quizData
+            await this.verifyQuizOwnership(tx, quizId, userId);
+            return await tx.quiz.update({
+                where: { id: quizId },
+                data: quizData
+            });
         });
-    });
-}
+    }
     async softDeleteQuiz(quizId: number, userId: number) {
         return await prisma.$transaction(async (tx) => {
-        await this.verifyQuizOwnership(tx, quizId, userId);
-        return await tx.quiz.update({
-            where: { id: quizId },
-            data: { is_active: false }
+            await this.verifyQuizOwnership(tx, quizId, userId);
+            return await tx.quiz.update({
+                where: { id: quizId },
+                data: { is_active: false }
+            });
         });
-    });
-}
+    }
     async getSortedQuizByRating(limit: number, sort: 'asc' | 'desc', page: number, rating: { gte: number; lte: number }) {
         const sortDirection = sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
         const offset = (page - 1) * limit;
@@ -173,7 +179,7 @@ export default class QuizService {
     }
     async createQuizComplex(quizData: QuizData, authorId: number) {
         return await prisma.$transaction(async (tx) => {
-            const { title, quiz_description,  attempt_limit, time_limit, difficulty, questions } = quizData;
+            const { title, quiz_description, attempt_limit, time_limit, difficulty, questions } = quizData;
             const newQuiz = await tx.quiz.create({
                 data: {
                     title,
@@ -253,8 +259,8 @@ export default class QuizService {
             });
         });
     }
-   async submitQuizAttempt(attemptId: number, answers: Answer[]) {
-        return await prisma.$transaction(async (tx) => { 
+    async submitQuizAttempt(attemptId: number, answers: Answer[]) {
+        return await prisma.$transaction(async (tx) => {
             const attempt = await tx.quizAttempt.findUnique({ where: { id: attemptId } });
             if (!attempt) {
                 throw new AppError('Quiz attempt not found', 404);
@@ -263,12 +269,12 @@ export default class QuizService {
                 throw new AppError('This attempt is already submitted', 400);
             }
 
-            let totalQuizScore = 0; 
+            let totalQuizScore = 0;
 
             for (const answer of answers) {
                 let { question_id, selected_option_ids, free_text_answer } = answer;
                 let answerScore = 0;
-                const question = await tx.question.findUnique({ 
+                const question = await tx.question.findUnique({
                     where: { id: question_id },
                     include: { answer_options: true }
                 });
@@ -304,7 +310,7 @@ export default class QuizService {
                     score: totalQuizScore
                 }
             });
-            
+
         });
 
     }
@@ -348,5 +354,22 @@ export default class QuizService {
                 freeTextAnswer: response.free_text_answer
             }))
         };
+    }
+
+    async getTopBookmarkedQuizzes(limit: number = 5) {
+        return await prisma.$queryRaw <getTopBookmarkedQuizzes[]>`
+            SELECT 
+                q.id as quiz_id, 
+                q.title,
+                COUNT(b.user_id)::int as bookmark_count,
+                u.username as author_name
+            FROM "Quiz" q
+            LEFT JOIN "Bookmark" b ON q.id = b.quiz_id
+            LEFT JOIN "User" u ON q.author_id = u.id
+            GROUP BY q.id, q.title, u.username
+            HAVING COUNT(b.user_id) > 0
+            ORDER BY bookmark_count DESC
+            LIMIT ${limit};
+        `;
     }
 }
