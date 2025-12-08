@@ -61,3 +61,13 @@ export const updateBookmarkNote = catchAsync(async (req: Request, res: Response)
         data: { bookmark }
     });
 });
+
+export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Response) => {
+    const stats = await bookmarkService.getTopBookmarkedQuizzes() as any[];
+
+    res.status(200).json({
+        status: 'success',
+        results: stats.length,
+        data: { stats }
+    });
+});
