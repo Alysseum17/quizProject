@@ -14,8 +14,8 @@ router.get("/:id", quizController.findQuizById);
 router.post("/", protect, quizController.createQuiz);
 router.post("/complex", protect, quizController.createQuizComplex);
 router.post("/:quizId/start", protect, quizController.startQuizAttempt);
-router.put("/:id", quizController.updateQuiz);
-router.delete("/:id", quizController.softDeleteQuiz);
+router.put("/:id", protect, quizController.updateQuiz);
+router.delete("/:id", protect, quizController.softDeleteQuiz);
 
 
 export default router;
