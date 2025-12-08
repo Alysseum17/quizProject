@@ -89,12 +89,3 @@ export const getFullyDetailedQuizById = catchAsync(async (req: Request, res: Res
     res.status(200).json({ quiz });
 });
 
-export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Response) => {
-    const stats = await quizService.getTopBookmarkedQuizzes() as any[];
-
-    res.status(200).json({
-        status: 'success',
-        results: stats.length,
-        data: { stats }
-    });
-});
