@@ -42,3 +42,13 @@ export const deleteQuestion = catchAsync(
     res.status(204).json({ status: "success", data: null });
   }
 );
+
+export const getQuestionStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const quiz = Number(req.params.quizId);
+
+    const stats = await questionService.getQuestionStats(quiz);
+
+    res.status(200).json({ status: "success", stats });
+  }
+);
