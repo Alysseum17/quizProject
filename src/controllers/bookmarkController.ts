@@ -32,12 +32,14 @@ export const getMyBookmarks = catchAsync(async (req: Request, res: Response) => 
     const userId = (req as any).user.id;
     const { page, limit } = quizQuerySchema.parse(req.query);
 
-    const bookmarks = await bookmarkService.getMyBookmarks(userId, page, limit);
+    const data = await bookmarkService.getMyBookmarks(userId, page, limit);
+
     res.status(200).json({
         status: 'success',
-        results: bookmarks.length,
+        results: data.items.length,
+        total: data.total,
         data: {
-            bookmarks
+            bookmarks: data.items
         }
     });
 });

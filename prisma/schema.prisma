@@ -19,20 +19,20 @@ enum QuestionType {
 }
 
 model User {
-  id            Int      @id @default(autoincrement()) @map("user_id")
-  username      String   @unique @db.VarChar(32)
-  email         String   @unique @db.VarChar(255)
-  password_hash String   @db.VarChar(255)
-  password_changed_at DateTime? @db.Timestamptz()
-  reset_token        String?  @db.VarChar(255)
-  reset_token_expires_at DateTime? @db.Timestamptz() 
-  avatar_url    String?  @db.VarChar(255)
-  created_at    DateTime @default(now()) @db.Timestamptz()
-  is_active     Boolean  @default(true)
-  quizzes       Quiz[]
-  reviews       Review[]
-  quiz_attempts QuizAttempt[]
-  bookmarks     Bookmark[]
+  id                     Int           @id @default(autoincrement()) @map("user_id")
+  username               String        @unique @db.VarChar(32)
+  email                  String        @unique @db.VarChar(255)
+  password_hash          String        @db.VarChar(255)
+  password_changed_at    DateTime?     @db.Timestamptz()
+  reset_token            String?       @db.VarChar(255)
+  reset_token_expires_at DateTime?     @db.Timestamptz()
+  avatar_url             String?       @db.VarChar(255)
+  created_at             DateTime      @default(now()) @db.Timestamptz()
+  is_active              Boolean       @default(true)
+  quizzes                Quiz[]
+  reviews                Review[]
+  quiz_attempts          QuizAttempt[]
+  bookmarks              Bookmark[]
 }
 
 model Quiz {
@@ -141,6 +141,8 @@ model Bookmark {
   quiz    Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
 
   created_at DateTime @default(now()) @db.Timestamptz()
+
+  note String? @db.Text
 
   @@id([user_id, quiz_id])
 }

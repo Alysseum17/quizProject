@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import {prisma} from '../prisma.js'
+import { prisma } from '../prisma.js'
 
 interface SortedQuizByRating {
     title: string;
@@ -72,17 +72,17 @@ export default class QuizService {
     }
     async createQuizComplex(quizData: any, authorId: number) {
         return await prisma.$transaction(async (prisma) => {
-            const { title, quiz_description,  attempt_limit, time_limit, difficulty, questions } = quizData;
+            const { title, quiz_description, attempt_limit, time_limit, difficulty, questions } = quizData;
             const newQuiz = await prisma.quiz.create({
                 data: {
                     title,
-                    quiz_description, 
+                    quiz_description,
                     attempt_limit,
                     time_limit,
                     difficulty,
-                    author_id: authorId 
+                    author_id: authorId
                 }
-            }); 
+            });
             for (const questionData of questions) {
                 const { question_text, question_type, options } = questionData;
                 const newQuestion = await prisma.question.create({
@@ -114,7 +114,7 @@ export default class QuizService {
                     }
                 }
             });
-                
+
         });
     }
     async startQuizAttempt(quizId: number, userId: number) {

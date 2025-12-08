@@ -8,5 +8,6 @@ router.use(protect);
 router.get('/', bookmarkController.getMyBookmarks);
 router.post('/:id', bookmarkController.addBookmark);
 router.delete('/:id', bookmarkController.removeBookmark);
+router.patch('/:id', bookmarkController.updateBookmarkNote);
 
 export default router;
