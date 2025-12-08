@@ -177,13 +177,13 @@ export default class QuizService {
             const newQuiz = await tx.quiz.create({
                 data: {
                     title,
-                    quiz_description, 
+                    quiz_description,
                     attempt_limit,
                     time_limit,
                     difficulty,
-                    author_id: authorId 
+                    author_id: authorId
                 }
-            }); 
+            });
             for (const questionData of questions) {
                 const { question_text, question_type, options } = questionData;
                 const newQuestion = await tx.question.create({
@@ -215,7 +215,7 @@ export default class QuizService {
                     }
                 }
             });
-                
+
         });
     }
     async startQuizAttempt(quizId: number, userId: number) {

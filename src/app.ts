@@ -27,9 +27,16 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(compression());
 app.use(cookieParser());
 
-app.use("/api/quizzes", quizRouter);
-app.use("/api/users", authRouter);
-app.use("/api/user-profiles", userRouter);
+app.use('/api/quizzes', quizRouter);
+app.use('/api/users', authRouter);
+app.use('/api/user-profiles', userRouter);
+app.use('/api/bookmarks', bookmarkRouter);
+
+app.use(globalErrorHandler);
+
+
+
+
 
 app.use("/api/quizzes/:quizId/reviews", reviewRouter);
 app.use("/api/reviews", reviewRouter);
