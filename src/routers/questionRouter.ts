@@ -1,6 +1,6 @@
 import express from "express";
 import * as questionController from "../controllers/questionController.js";
-import { protect } from "../controllers/authCotroller.js";
+import { protect } from "../controllers/authController.js";
 
 const router = express.Router({ mergeParams: true });
 

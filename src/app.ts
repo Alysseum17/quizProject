@@ -9,6 +9,7 @@ import userRouter from "./routers/userRouter.js";
 import globalErrorHandler from "./controllers/errorController.js";
 import cookieParser from "cookie-parser";
 import reviewRouter from "./routers/reviewRouter.js";
+import bookmarkRouter from "./routers/bookmarkRouter.js";
 export const app = express();
 app.set("query parser", "extended");
 
