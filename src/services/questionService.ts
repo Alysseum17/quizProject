@@ -3,20 +3,27 @@ import AppError from "../utils/appError.js";
 
 
 type OptionInput = {
+ {
   answer_text: string;
   is_correct: boolean;
 };
+interface createQuestionInput {
+  question_text: string;
+  question_type: "single_choice" | "multiple_choice" | "free_text";
+  points: number;
+  options: OptionInput[];
+}
+interface updateQuestionInput {
+  question_text?: string;
+  question_type?: "single_choice" | "multiple_choice" | "free_text";
+  points?: number;
+}
 
 export default class QuestionService {
   async createQuestion(
     userId: number,
     quizId: number,
-    data: {
-      question_text: string;
-      question_type: "single_choice" | "multiple_choice" | "free_text";
-      points: number;
-      options: OptionInput[];
-    }
+    data: createQuestionInput
   ) {
     const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
 
@@ -51,11 +58,7 @@ export default class QuestionService {
   async updateQuestion(
     userId: number,
     questionId: number,
-    data: {
-      question_text?: string;
-      question_type?: "single_choice" | "multiple_choice" | "free_text";
-      points?: number;
-    }
+    data: updateQuestionInput
   ) {
     const question = await prisma.question.findUnique({
       where: { id: questionId },
@@ -154,6 +157,33 @@ export default class QuestionService {
         where: { id: answerId },
       });
     });
+
+  async getQuestionStats(quizId: number) {
+    const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+    if (!quiz) throw new AppError("Quiz not found", 404);
+
+    const stats = await prisma.question.groupBy({
+      by: ["question_type"],
+      where: {
+        quiz_id: quizId,
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        points: true,
+      },
+      _avg: {
+        points: true,
+      },
+      _min: {
+        points: true,
+      },
+      _max: {
+        points: true,
+      },
+    });
+    return stats;
   }
 }
 

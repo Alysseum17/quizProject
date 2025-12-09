@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import AppError from '../../src/utils/appError.js';
+import { is } from 'zod/locales';
 
 
 jest.mock('../../src/prisma', () => ({
@@ -37,13 +38,17 @@ describe('AuthService Unit Tests - verifyUserToken', () => {
         (prisma.user.findUnique as jest.Mock).mockResolvedValue({ 
             id: 1, 
             username: 'tester', 
-            password_changed_at: null 
+            email: 'tester@example.com',
+            password_changed_at: null, 
+            is_active: true
         });
 
         const result = await authService.verifyUserToken(token);
 
         expect(result).toHaveProperty('id', 1);
-        expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
+        expect(prisma.user.findUnique).toHaveBeenCalled();
+        const callArgs = (prisma.user.findUnique as jest.Mock).mock.calls[0][0];
+        expect(callArgs.where.id).toBe(1);
     });
 
     it('should throw error if jwt.verify fails', async () => {
@@ -157,7 +162,7 @@ describe('AuthService - resetPassword', () => {
         (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
 
         await expect(authService.resetPassword(
-            { password: newPassword }, 
+            { password: newPassword, passwordConfirm: newPassword }, 
             rawToken
         )).rejects.toThrow('Token is invalid or has expired');
         

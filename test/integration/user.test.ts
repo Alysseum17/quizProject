@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/prisma.js';
 import jwt from 'jsonwebtoken';
+import { cleanupDatabase } from '../helpers/cleanup.js';
 
 describe('User Profile & Analytics Integration Tests', () => {
     let token: string;
@@ -14,14 +15,7 @@ describe('User Profile & Analytics Integration Tests', () => {
     const QUIZ_TITLE = 'Analytics Test Quiz';
 
     beforeAll(async () => {
-        await prisma.selectedAnswer.deleteMany();
-        await prisma.questionResponse.deleteMany();
-        await prisma.quizAttempt.deleteMany();
-        await prisma.review.deleteMany();
-        await prisma.answerOption.deleteMany();
-        await prisma.question.deleteMany();
-        await prisma.quiz.deleteMany();
-        await prisma.user.deleteMany();
+        await cleanupDatabase();
 
         const mainUser = await prisma.user.create({
             data: {
@@ -159,33 +153,52 @@ describe('User Profile & Analytics Integration Tests', () => {
         });
 
         it('GET /me/:quizId/stats - should return 404 if user never passed this quiz', async () => {
-    const newQuiz = await prisma.quiz.create({
-        data: { title: 'Untouched Quiz', author_id: userId }
-    });
+            const newQuiz = await prisma.quiz.create({
+                data: { title: 'Untouched Quiz', author_id: userId }
+            });
 
-    try {
-        const response = await request(app)
-            .get(`/api/user-profiles/me/${newQuiz.id}/stats`)
-            .set('Authorization', `Bearer ${token}`);
+            try {
+                const response = await request(app)
+                    .get(`/api/user-profiles/me/${newQuiz.id}/stats`)
+                    .set('Authorization', `Bearer ${token}`);
 
-        expect(response.status).toBe(404);
-        expect(response.body.message).toMatch(/no stats found/i);
-    } finally {
-        await prisma.quiz.delete({ where: { id: newQuiz.id } });
-    }
-});
+                expect(response.status).toBe(404);
+                expect(response.body.message).toMatch(/no stats found/i);
+            } finally {
+                await prisma.quiz.delete({ where: { id: newQuiz.id } });
+            }
+        });
 
-        it('GET /me/activities - should return sorted history', async () => {
+        it('GET /me/activities - should return sorted history with pagination', async () => {
             const response = await request(app)
                 .get('/api/user-profiles/me/activities')
                 .set('Authorization', `Bearer ${token}`)
-                .query({ limit: 10 });
+                .query({ limit: 10, page: 1 });
 
             expect(response.status).toBe(200);
-            expect(response.body.activities).toHaveLength(2);
-            expect(response.body.activities[0].score).toBe(10);
-            expect(response.body.activities[1].score).toBe(0);
-            expect(response.body.activities[0].quiz).toHaveProperty('title', QUIZ_TITLE);
+            
+            expect(response.body).toHaveProperty('items');
+            expect(response.body).toHaveProperty('pagination');
+            
+            expect(response.body.items).toHaveLength(2);
+            expect(response.body.items[0].score).toBe(10);
+            expect(response.body.items[1].score).toBe(0);
+            expect(response.body.items[0].quiz).toHaveProperty('title', QUIZ_TITLE);
+
+            expect(response.body.pagination.totalItems).toBe(2);
+            expect(response.body.pagination.totalPages).toBe(1);
+        });
+        
+        it('GET /me/activities - should respect pagination limit', async () => {
+            const response = await request(app)
+                .get('/api/user-profiles/me/activities')
+                .set('Authorization', `Bearer ${token}`)
+                .query({ limit: 1, page: 1 });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items).toHaveLength(1);
+            expect(response.body.pagination.hasNextPage).toBe(true);
+            expect(response.body.pagination.totalItems).toBe(2);
         });
     });
 
@@ -229,27 +242,33 @@ describe('User Profile & Analytics Integration Tests', () => {
             const response = await request(app).get('/api/user-profiles/top/authors/prolific');
             
             expect(response.status).toBe(200);
-            expect(response.body.authors.length).toBeGreaterThan(0);
-            expect(response.body.authors[0].username).toContain('UpdatedMainUser');
-            expect(response.body.authors[0].quiz_count).toBe(1);
+            
+            const authors = response.body.items;
+            expect(authors.length).toBeGreaterThan(0);
+            expect(authors[0].username).toContain('UpdatedMainUser');
+            expect(authors[0].quiz_count).toBe(1);
+            
+            expect(response.body.pagination).toBeDefined();
         });
 
         it('GET /top/quiz-scores - should sort users by score', async () => {
             const response = await request(app).get('/api/user-profiles/top/quiz-scores');
             
             expect(response.status).toBe(200);
-            const topUsers = response.body.topUsers;
+            
+            const topUsers = response.body.items;
             
             expect(topUsers.length).toBeGreaterThan(0);
             expect(Number(topUsers[0].average_score)).toBe(5);
+            expect(response.body.pagination).toBeDefined();
         });
-        it('GET /top/authors/attempts - should verify author rank by total attempts', async () => {
-            
+
+        it('GET /top/authors/quiz-attempts - should verify author rank by total attempts', async () => {
             const response = await request(app).get('/api/user-profiles/top/authors/quiz-attempts');
             
             expect(response.status).toBe(200);
             
-            const {topAuthors} = response.body;
+            const topAuthors = response.body.items; 
             
             expect(topAuthors.length).toBeGreaterThan(0);
         
@@ -257,6 +276,7 @@ describe('User Profile & Analytics Integration Tests', () => {
             
             expect(mainUserRank).toBeDefined();
             expect(mainUserRank.total_attempts).toBe(2);
+            expect(response.body.pagination).toBeDefined();
         });
     });
 });

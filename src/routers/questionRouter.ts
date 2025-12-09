@@ -4,10 +4,13 @@ import { protect } from "../controllers/authController.js";
 
 const router = express.Router({ mergeParams: true });
 
+
 router.use(protect);
+
 
 router.route("/").post(questionController.createQuestion);
 
+router.get("/stats", questionController.getQuestionStats);
 
 router
   .route("/:id")

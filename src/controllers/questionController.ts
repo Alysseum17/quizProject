@@ -2,12 +2,13 @@ import { Request, Response } from "express";
 import catchAsync from "../utils/catchAsync.js";
 import QuestionService from "../services/questionService.js";
 import * as questionSchemas from "../schemas/question.schema.js";
+import { AuthRequest } from "../utils/authRequestInterface.js";
 
 const questionService = new QuestionService();
 
 export const createQuestion = catchAsync(
-  async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const quizId = Number(req.params.quizId);
 
     const data = questionSchemas.createQuestionSchema.parse(req.body);
@@ -18,8 +19,8 @@ export const createQuestion = catchAsync(
 );
 
 export const updateQuestion = catchAsync(
-  async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const questionId = Number(req.params.id);
 
     const data = questionSchemas.updateQuestionSchema.parse(req.body);
@@ -33,8 +34,8 @@ export const updateQuestion = catchAsync(
 );
 
 export const deleteQuestion = catchAsync(
-  async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const questionId = Number(req.params.id);
 
     await questionService.deleteQuestion(userId, questionId);
@@ -43,8 +44,9 @@ export const deleteQuestion = catchAsync(
   }
 );
 
-export const addAnswerOption = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+
+export const addAnswerOption = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id; 
   const questionId = Number(req.params.questionId);
 
   const { answer_text, is_correct } = req.body;
@@ -61,8 +63,8 @@ export const addAnswerOption = catchAsync(async (req: Request, res: Response) =>
   res.status(201).json({ status: "success", data: { answer: newAnswer } });
 });
 
-export const updateAnswerOption = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+export const updateAnswerOption = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id;
   const answerId = Number(req.params.answerId);
   const { answer_text, is_correct } = req.body;
 
@@ -74,11 +76,22 @@ export const updateAnswerOption = catchAsync(async (req: Request, res: Response)
   res.status(200).json({ status: "success", data: { answer: updatedAnswer } });
 });
 
-export const deleteAnswerOption = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+export const deleteAnswerOption = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id;
   const answerId = Number(req.params.answerId);
 
   await questionService.deleteAnswerOption(userId, answerId);
 
   res.status(204).json({ status: "success", data: null });
 });
+
+
+export const getQuestionStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const quiz = Number(req.params.quizId);
+
+    const stats = await questionService.getQuestionStats(quiz);
+
+    res.status(200).json({ status: "success", stats });
+  }
+);

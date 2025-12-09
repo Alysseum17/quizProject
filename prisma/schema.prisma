@@ -7,7 +7,7 @@ datasource db {
 }
 
 enum Difficulty {
-  easy
+  easy  
   medium
   hard
 }

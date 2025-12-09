@@ -1,4 +1,5 @@
 import {prisma} from '../prisma.js'
+import {Prisma} from '@prisma/client';
 
 interface TopUsersByQuizScore {
     username: string;
@@ -53,11 +54,29 @@ export default class UserService {
     }
     async findUsersByName(name: string, limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.user.findMany({
+        const [total, users] = await Promise.all([
+            prisma.user.count({
+                where: { username: { contains: name } },
+            }),
+        prisma.user.findMany({
             where: { username: { contains: name } },
             take: limit,
             skip: offset,
-        });
+        })
+        ]);
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: total,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items:users,
+        };
     }
     async findUserById(userId: number) {
         return prisma.user.findUnique({
@@ -104,85 +123,181 @@ export default class UserService {
         average_quiz_rating: Number(ratingStats._avg.rating) || 0 
     };
 }
-    async getUserQuizes(userId: number) {
+    async getUserQuizes(userId: number, limit: number, page: number) {
+        const offset = (page - 1) * limit;
+        const total = await prisma.quiz.count({
+            where: { author_id: userId },
+        });
         const quizzes = await prisma.quiz.findMany({
             where: { author_id: userId },
-            include: {
-                _count: {  
-                    select:{
-                        quiz_attempts: true,
-                    }
-                },
-                reviews: {
-                    select: {
-                        rating: true
-                    }
-                }
+            take: limit,
+            skip: offset,
+            select: {
+                id: true,
+                title: true,
+                quiz_description: true,
+                created_at: true,
+                _count: { select: { quiz_attempts: true } },
             }
         });
-        return quizzes.map(quiz => {
-            const totalRatings = quiz.reviews.reduce((sum, review) => sum + Number(review.rating), 0);
-            const averageRating =
-                quiz.reviews.length > 0
-                    ? totalRatings / quiz.reviews.length
-                    : 0;
-            return {
-                quiz_id: quiz.id,
-                title: quiz.title,
-                quiz_description: quiz.quiz_description,
-                created_at: quiz.created_at,
-                total_attempts: quiz._count.quiz_attempts,
-                average_rating: averageRating
-            };
+        const quizIds = quizzes.map(quiz => quiz.id);
+
+        const ratings = await prisma.review.groupBy({
+            by: ['quiz_id'],
+            where: { quiz_id: { in: quizIds } },
+            _avg: { rating: true }
         });
+
+        const ratingsMap: Map<number, number> = new Map();
+        ratings.forEach(rating => {
+            ratingsMap.set(rating.quiz_id, Number(rating._avg.rating) || 0);
+        });
+
+        const mappedQuizzes = quizzes.map(quiz => ({
+            ...quiz,
+            total_attempts: quiz._count.quiz_attempts,
+            average_rating: ratingsMap.get(quiz.id)
+        }));
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: total,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: mappedQuizzes,
+        };
     }
 
     async findTopUsersByQuizScore(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<TopUsersByQuizScore[]>`
-            SELECT u.username, AVG(s.score) as average_score, DENSE_RANK() OVER (ORDER BY AVG(s.score) DESC)::int as rank FROM "User" u
+        const [total, users] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(DISTINCT u.user_id) as count FROM "User" u
+                INNER JOIN "QuizAttempt" s ON u.user_id = s.user_id
+            `,
+            prisma.$queryRaw<TopUsersByQuizScore[]>`
+            SELECT u.username, COALESCE(AVG(s.score), 0) as average_score, DENSE_RANK() OVER (ORDER BY AVG(s.score) DESC)::int as rank FROM "User" u
             INNER JOIN "QuizAttempt" s ON u.user_id = s.user_id
             GROUP BY u.user_id, u.username
             ORDER BY average_score DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items:users
+        };
     }
     async findTopAuthorsByQuizAttempts(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<TopAuthorsByQuizAttempts[]>`
+        const [total, authors] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(DISTINCT u.user_id) as count FROM "User" u
+                INNER JOIN "Quiz" q ON u.user_id = q.author_id
+                INNER JOIN "QuizAttempt" qa ON q.quiz_id = qa.quiz_id
+            `,
+        
+            prisma.$queryRaw<TopAuthorsByQuizAttempts[]>`
             SELECT u.username, COUNT(qa.quiz_attempt_id)::int as total_attempts, DENSE_RANK() OVER (ORDER BY COUNT(qa.quiz_attempt_id) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             INNER JOIN "QuizAttempt" qa ON q.quiz_id = qa.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY total_attempts DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}    
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}    
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items:authors
+        };
     }
 
     async findTopAuthorsByQuizCounts(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<TopAuthorsByQuizCounts[]>`
+        const [total, authors] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(DISTINCT u.user_id) as count FROM "User" u
+                INNER JOIN "Quiz" q ON u.user_id = q.author_id
+            `,
+            prisma.$queryRaw<TopAuthorsByQuizCounts[]>`
             SELECT u.username, COUNT(q.quiz_id)::int as total_quizzes, DENSE_RANK() OVER (ORDER BY COUNT(q.quiz_id) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             GROUP BY u.user_id, u.username
             ORDER BY total_quizzes DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: authors
+        };
     }
     async findTopAuthorsByAverageQuizRating(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<TopAuthorsByAverageQuizRating[]>`
+        const [total, authors] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(DISTINCT u.user_id) as count FROM "User" u
+                INNER JOIN "Quiz" q ON u.user_id = q.author_id
+                INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
+            `,
+            prisma.$queryRaw<TopAuthorsByAverageQuizRating[]>`
             SELECT u.username, AVG(r.rating) as average_rating, DENSE_RANK() OVER (ORDER BY AVG(r.rating) DESC)::int as rank FROM "User" u
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY average_rating DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: authors
+        };
     }
     async changeUserInfo(userId: number, data: { username?: string; email?: string }) {
         return prisma.user.update({
@@ -193,7 +308,24 @@ export default class UserService {
 
     async getProlificAuthors(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<ProlificAuthor[]>`
+        const [total, authors] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(*) as count FROM (
+                    SELECT u.user_id
+                    FROM "User" u
+                    LEFT JOIN "Quiz" q ON u.user_id = q.author_id AND q.is_active
+                    GROUP BY u.user_id
+                    HAVING COUNT(q.quiz_id) > (
+                        SELECT AVG(quiz_count) FROM (
+                            SELECT COUNT(q2.quiz_id) AS quiz_count
+                            FROM "User" u2
+                            LEFT JOIN "Quiz" q2 ON u2.user_id = q2.author_id AND q2.is_active
+                            GROUP BY u2.user_id
+                        ) AS AvgQuizCounts
+                    )
+                ) AS ProlificAuthors;
+            `,
+            prisma.$queryRaw<ProlificAuthor[]>`
             WITH AuthorQuizCounts AS (
                 SELECT 
                     u.user_id,
@@ -223,31 +355,60 @@ export default class UserService {
                 aqc.quiz_count > aqc2.avg_quiz_count
             ORDER BY 
                 aqc.quiz_count DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset};
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`};
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: authors
+        };
     }
     async getHighPerformanceUsers(limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.$queryRaw<HighPerformanceUser[]>`
+        const cte = Prisma.sql`
             WITH UserAverageScores AS (
-                SELECT 
-                    u.user_id,
-                    u.username,
-                    AVG(qa.score) AS average_score
-                FROM 
-                    "User" u
-                INNER JOIN 
-                    "QuizAttempt" qa ON u.user_id = qa.user_id
-                GROUP BY 
-                    u.user_id, u.username
-            ),
-            AverageOfAverages AS (
-                SELECT 
-                    AVG(average_score) AS avg_of_avg_scores
-                FROM 
-                    UserAverageScores
-            )
+                        SELECT 
+                            u.user_id,
+                            AVG(qa.score) AS average_score
+                        FROM 
+                            "User" u
+                        INNER JOIN 
+                            "QuizAttempt" qa ON u.user_id = qa.user_id
+                        GROUP BY 
+                            u.user_id
+                    ),
+                    AverageOfAverages AS (
+                        SELECT 
+                            AVG(average_score) AS avg_of_avg_scores
+                        FROM 
+                            UserAverageScores
+                    )
+                `;
+        const [total, users] = await Promise.all([
+            prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(*) as count FROM (
+                    ${cte}
+                    SELECT 
+                        uas.user_id
+                    FROM 
+                        UserAverageScores uas,
+                        AverageOfAverages aoa
+                    WHERE 
+                        uas.average_score > aoa.avg_of_avg_scores
+                ) AS HighPerformanceUsers;
+            `,
+            prisma.$queryRaw<HighPerformanceUser[]>`
+            ${cte}
             SELECT 
                 uas.username,
                 uas.average_score,
@@ -259,9 +420,23 @@ export default class UserService {
                 uas.average_score > aoa.avg_of_avg_scores
             ORDER BY 
                 uas.average_score DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset};
-        `;
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`};
+        `]);
+        const totalCount = total[0]?.count ? Number(total[0].count) : 0;
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: totalCount,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: users
+        };
     }
 
     async getUserQuizStats(userId: number, quizId: number) {
@@ -279,13 +454,17 @@ export default class UserService {
                 ORDER BY started_at DESC 
                 LIMIT 1)::int AS last_score
             FROM "QuizAttempt" qa
-            WHERE qa.user_id = ${userId} AND qa.quiz_id = ${quizId}
+            WHERE qa.user_id = ${Prisma.sql`${userId}`} AND qa.quiz_id = ${Prisma.sql`${quizId}`}
             GROUP BY qa.user_id, qa.quiz_id;
 `
     }
     async getLastUserActivities(userId: number, limit: number, page: number) {
         const offset = (page - 1) * limit;
-        return prisma.quizAttempt.findMany({
+        const [total, activities] = await Promise.all([
+            prisma.quizAttempt.count({
+                where: { user_id: userId, finished_at: { not: null } },
+            }),
+            prisma.quizAttempt.findMany({
             where: { user_id: userId, finished_at: { not: null } },
             orderBy: { started_at: 'desc' },
             take: limit,
@@ -299,7 +478,20 @@ export default class UserService {
                     }
                 }
             }
-        });
+        })]);
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        return {
+            pagination: {
+                totalItems: total,
+                totalPages,
+                currentPage: page,
+                hasNextPage,
+                hasPrevPage,
+            },
+            items: activities,
+        };
     }
 
 }
