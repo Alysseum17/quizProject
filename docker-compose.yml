@@ -1,0 +1,122 @@
+version: '3.8'
+
+x-common-variables: &common-variables
+
+  UID: ${HOST_UID:-1000}
+  GID: ${HOST_GID:-1000}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: quiz_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quizuser
+      POSTGRES_PASSWORD: quizpassword123
+      POSTGRES_DB: quizdb
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - quiz_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizuser -d quizdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: quiz_app_dev
+    restart: unless-stopped
+    user: "${HOST_UID}:${HOST_GID}"
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://quizuser:quizpassword123@postgres:5432/quizdb?schema=public
+      PORT: 3000
+      JWT_SECRET: 209007a35b2b1ba87d07ea5d8d6bfd00905add6e605bede70d08fbbbb8b456c04867221a8f9546b04733830bda750bea63779e3a5f52e9d91e66add33f9bfb4f
+      JWT_EXPIRES_IN: 7d
+      RESET_TOKEN_EXPIRY_MINUTES: 10
+      EMAIL_HOST: sandbox.smtp.mailtrap.io
+      EMAIL_PORT: 2525
+      EMAIL_USERNAME: 3bfec1feb59b03
+      EMAIL_PASSWORD: 61941ce50e67ad
+      EMAIL_FROM: noreply@quiz-app.com
+    volumes:
+      - .:/app:z
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quiz_network
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run start:dev"
+    profiles:
+      - dev
+
+  app_prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: quiz_app_prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://quizuser:quizpassword123@postgres:5432/quizdb?schema=public
+      PORT: 3000
+      JWT_SECRET: 209007a35b2b1ba87d07ea5d8d6bfd00905add6e605bede70d08fbbbb8b456c04867221a8f9546b04733830bda750bea63779e3a5f52e9d91e66add33f9bfb4f
+      JWT_EXPIRES_IN: 7d
+      RESET_TOKEN_EXPIRY_MINUTES: 10
+      EMAIL_HOST: sandbox.smtp.mailtrap.io
+      EMAIL_PORT: 2525
+      EMAIL_USERNAME: 3bfec1feb59b03
+      EMAIL_PASSWORD: 61941ce50e67ad
+      EMAIL_FROM: noreply@quiz-app.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quiz_network
+    command: sh -c "npx prisma migrate deploy && npm start"
+    profiles:
+      - prod
+
+  # pgAdmin (веб-інтерфейс для БД)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: quiz_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@quiz.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - quiz_network
+    profiles:
+      - dev
+
+networks:
+  quiz_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local

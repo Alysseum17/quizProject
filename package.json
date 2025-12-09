@@ -18,10 +18,13 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "test": "dotenv -e .env.test -- jest --runInBand",
-    "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
-    "start": "nodemon --exec tsx src/server.ts"
-  },
+  "build": "tsc",
+  "dev": "nodemon --exec tsx src/server.ts",
+  "start": "node dist/server.js",
+  "start:dev": "tsx src/server.ts",
+  "test": "dotenv -e .env.test -- jest --runInBand",
+  "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy"
+},
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
