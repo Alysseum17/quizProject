@@ -21,9 +21,8 @@ export const findUsersByName = catchAsync(async (req: Request, res: Response, ne
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { name } = data;
     const { limit, page } = query;
-    if (!name) return next(new AppError('Name parameter is required', 400));
-    const users = await userService.findUsersByName(name, limit, page);
-    res.status(200).json({ users });
+    const { pagination, items} = await userService.findUsersByName(name, limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const getUserWithDetails = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -38,9 +37,11 @@ export const getUserWithDetails = catchAsync(async (req: Request, res: Response,
 
 export const getUserQuizes = catchAsync(async (req: AuthRequest, res: Response) => {
     const data = userSchemas.findUserByIdSchema.parse(req.params);
+    const query = userSchemas.queryUserSchema.parse(req.query);
+    const { limit, page } = query;
     const { userId } = data;
-    const quizes = await userService.getUserQuizes(userId);
-    res.status(200).json({ quizes });
+    const { pagination, items } = await userService.getUserQuizes(userId, limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const getCurrentUser = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -55,29 +56,29 @@ export const getCurrentUser = catchAsync(async (req: AuthRequest, res: Response,
 export const findTopUsersByQuizScore = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const topUsers = await userService.findTopUsersByQuizScore(limit, page);
-    res.status(200).json({ topUsers });
+    const { pagination, items } = await userService.findTopUsersByQuizScore(limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const findTopAuthorsByQuizAttempts = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const topAuthors = await userService.findTopAuthorsByQuizAttempts(limit, page);
-    res.status(200).json({ topAuthors });
+    const { pagination, items } = await userService.findTopAuthorsByQuizAttempts(limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const findTopAuthorsByQuizCounts = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const topAuthors = await userService.findTopAuthorsByQuizCounts(limit, page);
-    res.status(200).json({ topAuthors });
+    const { pagination, items } = await userService.findTopAuthorsByQuizCounts(limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const findTopAuthorsByAverageQuizRating = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const topAuthors = await userService.findTopAuthorsByAverageQuizRating(limit, page);
-    res.status(200).json({ topAuthors });
+    const { pagination, items } = await userService.findTopAuthorsByAverageQuizRating(limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const changeUserInfo = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -90,14 +91,14 @@ export const changeUserInfo = catchAsync(async (req: AuthRequest, res: Response)
 export const getProlificAuthors = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const authors = await userService.getProlificAuthors(limit, page);
-    res.status(200).json({ authors });
+    const { pagination, items } = await userService.getProlificAuthors(limit, page);
+    res.status(200).json({ items, pagination });
 });
 export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
-    const users = await userService.getHighPerformanceUsers(limit, page);
-    res.status(200).json({ users });
+    const { pagination, items } = await userService.getHighPerformanceUsers(limit, page);
+    res.status(200).json({ items, pagination });
 });
 
 export const getUserQuizStats = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -114,6 +115,6 @@ export const getUserQuizStats = catchAsync(async (req: AuthRequest, res: Respons
 export const getUserLastActivities = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.user.id;
     const {limit, page} = userSchemas.queryUserSchema.parse(req.query);
-    const activities = await userService.getLastUserActivities(userId, limit, page);
-    res.status(200).json({ activities });
-});
+    const { pagination, items } = await userService.getLastUserActivities(userId, limit, page);
+    res.status(200).json({ items, pagination });
+})

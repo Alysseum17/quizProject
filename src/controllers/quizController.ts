@@ -40,8 +40,8 @@ export const softDeleteQuiz = catchAsync(async (req: AuthRequest, res: Response)
 });
 export const getSortedQuizByRating = catchAsync(async (req: Request, res: Response) => {
     const data = quizSchemas.quizQuerySchema.parse(req.query);
-    const quizzes = await quizService.getSortedQuizByRating(data);
-    res.status(200).json({ quizzes });
+    const result = await quizService.getSortedQuizByRating(data);
+    res.status(200).json({ items: result.items, pagination: result.pagination });
 });
 
 

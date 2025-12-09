@@ -28,6 +28,8 @@ export const quizQuerySchema = zod.object({
         gte: zod.coerce.number().min(0).max(5).default(0),
         lte: zod.coerce.number().min(0).max(5).default(5),
     }).default({gte:0, lte:5}),
+    name: zod.string().min(1).optional(),
+    orderBy: zod.enum(['title', 'average_rating', 'created_at']).default('average_rating'),
 });
 
 export const optionSchema = zod.object({

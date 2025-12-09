@@ -7,8 +7,7 @@ const router = express.Router();
 
 router.use("/:quizId/questions", questionRouter);
 
-router.get("/", quizController.getAllQuiz);
-router.get("/rating", quizController.getSortedQuizByRating);
+router.get("/", quizController.getSortedQuizByRating);
 router.get("/name/:name", quizController.findQuizByName);
 router.get("/:quizId", quizController.getFullyDetailedQuizById);
 router.post("/", protect, quizController.createQuiz);
