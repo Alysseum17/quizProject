@@ -8,12 +8,12 @@ const router = express.Router({ mergeParams: true });
 router.use(protect);
 
 
-router.route("/").post(questionController.createQuestion);
+router.route("/:quizId").post(questionController.createQuestion);
 
 router.get("/stats", questionController.getQuestionStats);
 
 router
-  .route("/:id")
+  .route("/:questionId")
   .patch(questionController.updateQuestion)
   .delete(questionController.deleteQuestion);
 

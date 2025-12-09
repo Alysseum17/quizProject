@@ -89,7 +89,7 @@ export default class ReviewService {
   async deleteReview(userId: number, reviewId: number) {
     const review = await prisma.review.findUnique({ where: { id: reviewId } });
     if (!review) {
-      throw new AppError("Review not found", 400);
+      throw new AppError("Review not found", 404);
     }
 
     if (review.user_id !== userId) {

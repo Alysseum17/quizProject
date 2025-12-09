@@ -3,7 +3,6 @@ import AppError from "../utils/appError.js";
 
 
 type OptionInput = {
- {
   answer_text: string;
   is_correct: boolean;
 };
@@ -157,6 +156,7 @@ export default class QuestionService {
         where: { id: answerId },
       });
     });
+  }
 
   async getQuestionStats(quizId: number) {
     const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
@@ -186,4 +186,5 @@ export default class QuestionService {
     return stats;
   }
 }
+    
 
