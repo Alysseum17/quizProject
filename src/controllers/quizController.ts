@@ -17,7 +17,7 @@ export const findQuizByName = catchAsync(async (req: Request, res: Response) => 
     const data = quizSchemas.quizNameParamSchema.parse(req.params);
     const { name } = data;
     const quizzes = await quizService.findQuizByName(name);
-    res.status(200).json({ quizzes });
+    res.status(200).json({ status: "success", quizzes });
 });
 export const createQuiz = handlerFactory.createOne(model, quizSchemas.quizCreateSchema);
 
@@ -26,7 +26,7 @@ export const updateQuiz = catchAsync(async (req: AuthRequest, res: Response) => 
     const data = quizSchemas.quizUpdateSchema.parse(req.body);
     const userId = req.user.id;
     const quiz = await quizService.updateQuiz(+id, data, userId);
-    res.status(200).json({ quiz });
+    res.status(200).json({status: "success", quiz });
 });
 
 export const softDeleteQuiz = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -34,14 +34,15 @@ export const softDeleteQuiz = catchAsync(async (req: AuthRequest, res: Response)
     const userId = req.user.id;
     const quiz = await quizService.softDeleteQuiz(+id, userId);
     res.status(200).json({
+        status: "success",
         message: 'Quiz soft-deleted successfully',
         quiz
     })
 });
 export const getSortedQuizByRating = catchAsync(async (req: Request, res: Response) => {
     const data = quizSchemas.quizQuerySchema.parse(req.query);
-    const result = await quizService.getSortedQuizByRating(data);
-    res.status(200).json({ items: result.items, pagination: result.pagination });
+    const {items, pagination} = await quizService.getSortedQuizByRating(data);
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 
@@ -51,7 +52,7 @@ export const createQuizComplex = catchAsync(async (req: AuthRequest, res: Respon
     const data = req.body;
     const quizData = quizSchemas.quizComplexSchema.parse(data);
     const newQuiz = await quizService.createQuizComplex(quizData, authorId);
-    res.status(201).json({ quiz: newQuiz });
+    res.status(201).json({ status: "success", quiz: newQuiz });
 });
 
 export const startQuizAttempt = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -59,7 +60,7 @@ export const startQuizAttempt = catchAsync(async (req: AuthRequest, res: Respons
     const { quizId } = data;
     const userId = req.user.id;
     const attempt = await quizService.startQuizAttempt(quizId, userId);
-    res.status(201).json({ attempt });
+    res.status(201).json({ status: "success", attempt });
 });
 
 export const submitQuizAttempt = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -68,14 +69,14 @@ export const submitQuizAttempt = catchAsync(async (req: AuthRequest, res: Respon
     const bodyData = quizSchemas.quizAttemptSubmitSchema.parse(req.body);
     const { answers } = bodyData;
     const result = await quizService.submitQuizAttempt(attemptId, answers);
-    res.status(200).json({ result });
+    res.status(200).json({ status: "success", result });
 });
 
 export const getQuizResults = catchAsync(async (req: Request, res: Response) => {
     const data = quizSchemas.quizAttemptIdParamSchema.parse(req.params);
     const { attemptId } = data;
     const results = await quizService.getQuizResults(attemptId);
-    res.status(200).json({ results });
+    res.status(200).json({ status: "success", results });
 });
 
 
