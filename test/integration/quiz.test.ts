@@ -104,11 +104,21 @@ describe('Global Quiz Integration Tests', () => {
             expect(response.body.newItem.difficulty).toBe('medium');
         });
 
-        it('GET / - should retrieve quizzes', async () => {
-            const response = await request(app).get('/api/quizzes');
-            expect(response.status).toBe(200);
-            expect(response.body.items.length).toBeGreaterThanOrEqual(1);
-        });
+        it('GET / - should retrieve quizzes with pagination structure', async () => {
+    const response = await request(app).get('/api/quizzes');
+    
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('items');
+    expect(response.body).toHaveProperty('pagination');
+    
+    expect(response.body.pagination).toHaveProperty('page');
+    expect(response.body.pagination).toHaveProperty('total');
+    expect(response.body.pagination).toHaveProperty('totalPages');
+    
+    expect(response.body.items.length).toBeGreaterThanOrEqual(1);
+    
+    expect(response.body.items[0]).toHaveProperty('average_rating');
+});
 
         it('GET /:id - should retrieve detail quiz', async () => {
             const response = await request(app).get(`/api/quizzes/${createdQuizId}`);
@@ -135,11 +145,76 @@ describe('Global Quiz Integration Tests', () => {
                 .delete(`/api/quizzes/${createdQuizId}`)
                 .set('Authorization', `Bearer ${token}`)
                 .send({ is_active: false });
-             console.log('DEBUG BODY:', JSON.stringify(response.body, null, 2));
              expect(response.status).toBe(200);
              expect(response.body.quiz.is_active).toBe(false);
              expect(response.body.message).toBe('Quiz soft-deleted successfully');
         });
+        describe('Quiz Search & Filtering', () => {
+        beforeAll(async () => {
+            const quiz1 = await createTestQuiz(userId, 'Math Quiz');
+            await prisma.review.create({
+                data: { quiz_id: quiz1.id, user_id: userId, rating: 5, review_text: 'Excellent' }
+            });
+
+            const quiz2 = await createTestQuiz(userId, 'History Quiz');
+            await prisma.review.create({
+                data: { quiz_id: quiz2.id, user_id: userId, rating: 3, review_text: 'Average' }
+            });
+
+            await createTestQuiz(userId, 'Science Quiz');
+        });
+
+        it('GET / - should filter quizzes by rating range (4-5)', async () => {
+            const response = await request(app)
+                .get('/api/quizzes')
+                .query({ 
+                    'rating[gte]': 4, 
+                    'rating[lte]': 5 
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items).toHaveLength(1);
+            expect(response.body.items[0].title).toBe('Math Quiz');
+            expect(Number(response.body.pagination.total)).toBe(1);
+        });
+
+        it('GET / - should search quizzes by name', async () => {
+            const response = await request(app)
+                .get('/api/quizzes')
+                .query({ name: 'History' });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items).toHaveLength(1);
+            expect(response.body.items[0].title).toBe('History Quiz');
+        });
+
+        it('GET / - should sort quizzes by rating descending', async () => {
+            const response = await request(app)
+                .get('/api/quizzes')
+                .query({ 
+                    sort: 'desc', 
+                    orderBy: 'average_rating' 
+                });
+
+            expect(response.status).toBe(200);
+            const items = response.body.items;
+            expect(items.length).toBeGreaterThanOrEqual(2);
+            expect(Number(items[0].average_rating)).toBeGreaterThanOrEqual(Number(items[1].average_rating));
+        });
+
+        it('GET / - should include quizzes with 0 rating when filtering broadly', async () => {
+            const response = await request(app)
+                .get('/api/quizzes')
+                .query({ 
+                    name: 'Science',
+                    'rating[gte]': 0 
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items[0].title).toBe('Science Quiz');
+            expect(Number(response.body.items[0].average_rating)).toBe(0);
+        });
+    });
     });
     describe('Quiz errors handling', () => {
         it('GET /:id - should return 404 for non-existent quiz', async () => {
@@ -320,7 +395,6 @@ describe('Global Quiz Integration Tests', () => {
                 .post(`/api/quizzes/${quiz.id}/start`)
                 .set('Authorization', `Bearer ${token}`)
                 .send();
-            console.log('DEBUG RESPONSE BODY:', JSON.stringify(secondAttemptResponse.body, null, 2));
             expect(secondAttemptResponse.status).toBe(400);
             expect(secondAttemptResponse.body.message).toBe('Attempt limit reached for this quiz');
         });

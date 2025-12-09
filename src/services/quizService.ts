@@ -14,6 +14,8 @@ interface SortedQuizByRatingQuery {
         gte: number;
         lte: number;
     };
+    name?: string; 
+    orderBy?: 'title' | 'average_rating' | 'created_at';
 }
 interface updateQuizData {
     title?: string;
@@ -169,16 +171,48 @@ export default class QuizService {
     async getSortedQuizByRating(query: SortedQuizByRatingQuery) {
         const sortDirection = query.sort === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
         const offset = (query.page - 1) * query.limit;
-        const quizzes = await prisma.$queryRaw<SortedQuizByRating[]>`
-            SELECT q.title, AVG(r.rating) as average_rating FROM "Quiz" q
-            INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
+        const searchPattern = query.name ? `%${query.name}%` : '%%';
+        const orderByField = query.orderBy === 'title' ? Prisma.sql`q.title` :
+            query.orderBy === 'created_at' ? Prisma.sql`q.created_at` :
+                Prisma.sql`average_rating`;
+        const whereAndHavingClause = Prisma.sql`
+            FROM "Quiz" q
+            LEFT JOIN "Review" r ON q.quiz_id = r.quiz_id
+            WHERE q.title ILIKE ${searchPattern}
             GROUP BY q.quiz_id, q.title
-            HAVING AVG(r.rating) >= ${query.rating.gte} AND AVG(r.rating) <= ${query.rating.lte}
-            ORDER BY AVG(r.rating) ${sortDirection}
-            LIMIT ${Prisma.sql`${query.limit}`}
-            OFFSET ${Prisma.sql`${offset}`}
+            HAVING COALESCE(AVG(r.rating), 0) >= ${query.rating.gte} AND COALESCE(AVG(r.rating), 0) <= ${query.rating.lte}
         `;
-        return quizzes;
+        const [countResult, quizzes] = await Promise.all([
+            prisma.$queryRaw<{ count: number }[]>`
+            SELECT COUNT(*)::int as count
+            FROM
+            (SELECT q.quiz_id
+            ${whereAndHavingClause}
+            ) AS filtered_quizzes
+            `,
+         prisma.$queryRaw<SortedQuizByRating[]>`
+            SELECT q.title, 
+            COALESCE(AVG(r.rating), 0) as average_rating 
+            ${whereAndHavingClause}
+            ORDER BY ${orderByField} ${sortDirection}
+            LIMIT ${query.limit}
+            OFFSET ${offset}
+        `]);
+        const total = countResult[0]?.count ? countResult[0].count : 0; 
+        const totalPages = Math.ceil(total / query.limit);
+        const hasNextPage = query.page < totalPages;
+        const hasPrevPage = query.page > 1;
+        return {
+            items: quizzes,
+            pagination: {
+                page: query.page,
+                limit: query.limit,
+                total,
+                totalPages,
+                hasNextPage,
+                hasPrevPage
+            }
+        };
     }
     async createQuizComplex(quizData: QuizData, authorId: number) {
         return await prisma.$transaction(async (tx) => {
