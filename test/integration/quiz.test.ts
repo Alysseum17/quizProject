@@ -73,9 +73,9 @@ describe("Global Quiz Integration Tests", () => {
               question_type: "single_choice",
               points: 5,
               options: [
-                { optionText: "3" },
-                { optionText: "4", isCorrect: true },
-                { optionText: "5" },
+                { answer_text: "3" },
+                { answer_text: "4", is_correct: true },
+                { answer_text: "5" },
               ],
             },
           ],
