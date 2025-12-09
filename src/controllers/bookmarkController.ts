@@ -2,11 +2,12 @@ import { Request, Response } from "express";
 import catchAsync from "../utils/catchAsync.js";
 import BookmarkService from "../services/bookmarkService.js";
 import { quizIdParamSchema, quizQuerySchema } from "../schemas/quiz.schema.js";
+import { AuthRequest } from "../utils/authRequestInterface.js";
 
 const bookmarkService = new BookmarkService();
 
-export const addBookmark = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+export const addBookmark = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const { quizId } = quizIdParamSchema.parse(req.params);
 
     await bookmarkService.addBookmark(userId, quizId);
@@ -17,8 +18,8 @@ export const addBookmark = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-export const removeBookmark = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+export const removeBookmark = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const { quizId } = quizIdParamSchema.parse(req.params);
 
     await bookmarkService.removeBookmark(userId, quizId);
@@ -28,8 +29,8 @@ export const removeBookmark = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
-export const getMyBookmarks = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+export const getMyBookmarks = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const { page, limit } = quizQuerySchema.parse(req.query);
 
     const data = await bookmarkService.getMyBookmarks(userId, page, limit);
@@ -45,8 +46,8 @@ export const getMyBookmarks = catchAsync(async (req: Request, res: Response) => 
 });
 
 
-export const updateBookmarkNote = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+export const updateBookmarkNote = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const { quizId } = quizIdParamSchema.parse(req.params);
     const { note } = req.body;
 
@@ -63,7 +64,7 @@ export const updateBookmarkNote = catchAsync(async (req: Request, res: Response)
 });
 
 export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Response) => {
-    const stats = await bookmarkService.getTopBookmarkedQuizzes() as any[];
+    const stats = await bookmarkService.getTopBookmarkedQuizzes();
 
     res.status(200).json({
         status: 'success',

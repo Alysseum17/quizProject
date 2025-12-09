@@ -13,13 +13,17 @@ import bookmarkRouter from "./routers/bookmarkRouter.js";
 export const app = express();
 app.set("query parser", "extended");
 
-app.enable("trust proxy");
+if (process.env.NODE_ENV !== 'test') {
+    app.enable("trust proxy");
+}
+
 app.use(cors());
 app.use(helmet());
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
   message: "Too many requests from this IP, please try again in an hour!",
+  skip: (req) => process.env.NODE_ENV === 'test'
 });
 
 app.use("/api", limiter);
@@ -34,10 +38,6 @@ app.use('/api/user-profiles', userRouter);
 app.use('/api/bookmarks', bookmarkRouter);
 
 app.use(globalErrorHandler);
-
-
-
-
 
 app.use("/api/quizzes/:quizId/reviews", reviewRouter);
 app.use("/api/reviews", reviewRouter);

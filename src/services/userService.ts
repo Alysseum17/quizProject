@@ -1,4 +1,5 @@
 import {prisma} from '../prisma.js'
+import {Prisma} from '@prisma/client';
 
 interface TopUsersByQuizScore {
     username: string;
@@ -107,34 +108,32 @@ export default class UserService {
     async getUserQuizes(userId: number) {
         const quizzes = await prisma.quiz.findMany({
             where: { author_id: userId },
-            include: {
-                _count: {  
-                    select:{
-                        quiz_attempts: true,
-                    }
-                },
-                reviews: {
-                    select: {
-                        rating: true
-                    }
-                }
+            select: {
+                id: true,
+                title: true,
+                quiz_description: true,
+                created_at: true,
+                _count: { select: { quiz_attempts: true } },
             }
         });
-        return quizzes.map(quiz => {
-            const totalRatings = quiz.reviews.reduce((sum, review) => sum + Number(review.rating), 0);
-            const averageRating =
-                quiz.reviews.length > 0
-                    ? totalRatings / quiz.reviews.length
-                    : 0;
-            return {
-                quiz_id: quiz.id,
-                title: quiz.title,
-                quiz_description: quiz.quiz_description,
-                created_at: quiz.created_at,
-                total_attempts: quiz._count.quiz_attempts,
-                average_rating: averageRating
-            };
+        const quizIds = quizzes.map(quiz => quiz.id);
+
+        const ratings = await prisma.review.groupBy({
+            by: ['quiz_id'],
+            where: { quiz_id: { in: quizIds } },
+            _avg: { rating: true }
         });
+
+        const ratingsMap: Map<number, number> = new Map();
+        ratings.forEach(rating => {
+            ratingsMap.set(rating.quiz_id, Number(rating._avg.rating) || 0);
+        });
+
+        return quizzes.map(quiz => ({
+            ...quiz,
+            total_attempts: quiz._count.quiz_attempts,
+            average_rating: ratingsMap.get(quiz.id)
+        }));
     }
 
     async findTopUsersByQuizScore(limit: number, page: number) {
@@ -144,8 +143,8 @@ export default class UserService {
             INNER JOIN "QuizAttempt" s ON u.user_id = s.user_id
             GROUP BY u.user_id, u.username
             ORDER BY average_score DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
         `;
     }
     async findTopAuthorsByQuizAttempts(limit: number, page: number) {
@@ -156,8 +155,8 @@ export default class UserService {
             INNER JOIN "QuizAttempt" qa ON q.quiz_id = qa.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY total_attempts DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}    
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}    
         `;
     }
 
@@ -168,8 +167,8 @@ export default class UserService {
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             GROUP BY u.user_id, u.username
             ORDER BY total_quizzes DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
         `;
     }
     async findTopAuthorsByAverageQuizRating(limit: number, page: number) {
@@ -180,8 +179,8 @@ export default class UserService {
             INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY average_rating DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset}
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`}
         `;
     }
     async changeUserInfo(userId: number, data: { username?: string; email?: string }) {
@@ -223,8 +222,8 @@ export default class UserService {
                 aqc.quiz_count > aqc2.avg_quiz_count
             ORDER BY 
                 aqc.quiz_count DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset};
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`};
         `;
     }
     async getHighPerformanceUsers(limit: number, page: number) {
@@ -259,8 +258,8 @@ export default class UserService {
                 uas.average_score > aoa.avg_of_avg_scores
             ORDER BY 
                 uas.average_score DESC NULLS LAST
-            LIMIT ${limit}
-            OFFSET ${offset};
+            LIMIT ${Prisma.sql`${limit}`}
+            OFFSET ${Prisma.sql`${offset}`};
         `;
     }
 
@@ -279,7 +278,7 @@ export default class UserService {
                 ORDER BY started_at DESC 
                 LIMIT 1)::int AS last_score
             FROM "QuizAttempt" qa
-            WHERE qa.user_id = ${userId} AND qa.quiz_id = ${quizId}
+            WHERE qa.user_id = ${Prisma.sql`${userId}`} AND qa.quiz_id = ${Prisma.sql`${quizId}`}
             GROUP BY qa.user_id, qa.quiz_id;
 `
     }

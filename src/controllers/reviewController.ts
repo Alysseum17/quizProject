@@ -2,11 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import catchAsync from "../utils/catchAsync.js";
 import ReviewService from "../services/reviewService.js";
 import * as reviewSchemas from "../schemas/review.schema.js";
+import { AuthRequest } from "../utils/authRequestInterface.js";
 
 const reviewService = new ReviewService();
 
-export const createReview = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+export const createReview = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id;
   const quizId = Number(req.params.quizId);
   const data = reviewSchemas.createReviewSchema.parse(req.body);
   const newReview = await reviewService.createReview(userId, quizId, data);
@@ -33,8 +34,8 @@ export const getQuizReviews = catchAsync(
   }
 );
 
-export const deleteReview = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+export const deleteReview = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id;
   const reviewId = Number(req.params.id);
 
   await reviewService.deleteReview(userId, reviewId);
@@ -45,8 +46,8 @@ export const deleteReview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const updateReview = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
+export const updateReview = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user.id;
   const reviewId = Number(req.params.id);
 
   const data = reviewSchemas.updateReviewSchema.parse(req.body);

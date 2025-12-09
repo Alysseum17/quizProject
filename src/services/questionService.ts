@@ -1,21 +1,27 @@
 import { prisma } from "../prisma.js";
 import AppError from "../utils/appError.js";
 
-type OptionInput = {
+interface OptionInput {
   answer_text: string;
   is_correct: boolean;
 };
+interface createQuestionInput {
+  question_text: string;
+  question_type: "single_choice" | "multiple_choice" | "free_text";
+  points: number;
+  options: OptionInput[];
+}
+interface updateQuestionInput {
+  question_text?: string;
+  question_type?: "single_choice" | "multiple_choice" | "free_text";
+  points?: number;
+}
 
 export default class QuestionService {
   async createQuestion(
     userId: number,
     quizId: number,
-    data: {
-      question_text: string;
-      question_type: "single_choice" | "multiple_choice" | "free_text";
-      points: number;
-      options: OptionInput[];
-    }
+    data: createQuestionInput
   ) {
     const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
 
@@ -50,11 +56,7 @@ export default class QuestionService {
   async updateQuestion(
     userId: number,
     questionId: number,
-    data: {
-      question_text?: string;
-      question_type?: "single_choice" | "multiple_choice" | "free_text";
-      points?: number;
-    }
+    data: updateQuestionInput
   ) {
     const question = await prisma.question.findUnique({
       where: { id: questionId },

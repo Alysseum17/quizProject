@@ -3,11 +3,31 @@ import bcrypt from 'bcrypt';
 import { Email } from '../utils/email.js';
 import AppError from '../utils/appError.js';
 import crypto from 'crypto';
-import { prisma } from '../prisma.js';  
+import { prisma } from '../prisma.js'; 
+
+interface SignupData {
+    username: string;
+    email: string;
+    password: string;
+}
+
+interface LoginData {
+    email: string;
+    password: string;
+}
+
+interface ResetPasswordData {
+    password: string;
+    passwordConfirm: string;
+}
+
 export default class AuthService { 
     signToken = (userId: number) => {
         const payload = { id: userId };
         const secret: Secret = process.env.JWT_SECRET as string;
+        if (!secret) {
+            throw new AppError('JWT secret is not defined', 500);
+        }
         const options: SignOptions = {
             expiresIn: process.env.JWT_EXPIRES_IN as any
         };
@@ -28,7 +48,14 @@ export default class AuthService {
         const secret: Secret = process.env.JWT_SECRET as string;
         const decoded: any =  jwt.verify(token, secret);
         const currentUser = await prisma.user.findUnique({
-            where: { id: decoded.id }
+            where: { id: decoded.id },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                is_active: true,
+                password_changed_at: true
+            }
         });
         if (!currentUser) {
             throw new AppError('The user belonging to this token no longer exists.', 401);
@@ -41,7 +68,7 @@ export default class AuthService {
             }
         return currentUser;
     }
-    async signup(userData: any, url: string) {
+    async signup(userData: SignupData, url: string) {
         const { username, email, password } = userData;
         if (await prisma.user.findUnique({ where: { email } })) {
             throw new AppError('Email already in use', 400);
@@ -58,7 +85,7 @@ export default class AuthService {
             const token = this.signToken(newUser.id);
             return { user: newUser, token };
     }
-    async login(loginData: any) {
+    async login(loginData: LoginData) {
         const { email, password } = loginData;
         const user = await prisma.user.findUnique({
             where: { email }
@@ -81,7 +108,7 @@ export default class AuthService {
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetURL = `${protocol}://${host}/api/user/resetPassword/${resetToken}`;
         await prisma.$transaction(async (tx) => {
-            await tx.user.update({
+             await tx.user.update({
                 where: { id: user.id },
                 data: {
                     reset_token: hashedToken,
@@ -95,7 +122,7 @@ export default class AuthService {
            }
         });
     }
-    async resetPassword(data: any, token: string) {
+    async resetPassword(data: ResetPasswordData, token: string) {
         const { password} = data;
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         const user = await prisma.user.findFirst({

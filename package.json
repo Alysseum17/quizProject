@@ -18,7 +18,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "test": "dotenv -e .env.test -- jest",
+    "test": "dotenv -e .env.test -- jest --runInBand",
     "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
     "start": "nodemon --exec tsx src/server.ts"
   },

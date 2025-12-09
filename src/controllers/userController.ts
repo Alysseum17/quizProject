@@ -3,7 +3,7 @@ import * as userSchemas from '../schemas/user.schema.js';
 import catchAsync from "../utils/catchAsync.js";
 import UserService from "../services/userService.js";
 import AppError from "../utils/appError.js";
-import { stat } from "fs";
+import { AuthRequest } from "../utils/authRequestInterface.js";
 
 
 const userService = new UserService();
@@ -36,15 +36,15 @@ export const getUserWithDetails = catchAsync(async (req: Request, res: Response,
     res.status(200).json({ user });
 });
 
-export const getUserQuizes = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const getUserQuizes = catchAsync(async (req: AuthRequest, res: Response) => {
     const data = userSchemas.findUserByIdSchema.parse(req.params);
     const { userId } = data;
     const quizes = await userService.getUserQuizes(userId);
     res.status(200).json({ quizes });
 });
 
-export const getCurrentUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user.id;
+export const getCurrentUser = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user.id;
     const user = await userService.getUserWithDetails(userId);
     if (!user) {
         return next(new AppError('User not found', 404));
@@ -80,8 +80,8 @@ export const findTopAuthorsByAverageQuizRating = catchAsync(async (req: Request,
     res.status(200).json({ topAuthors });
 });
 
-export const changeUserInfo = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user.id;
+export const changeUserInfo = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const data = userSchemas.changeInfoSchema.parse(req.body);
     const updatedUser = await userService.changeUserInfo(userId, data);
     res.status(200).json({ user: updatedUser });
@@ -100,9 +100,9 @@ export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Respo
     res.status(200).json({ users });
 });
 
-export const getUserQuizStats = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const getUserQuizStats = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const data = userSchemas.quizIdParamSchema.parse(req.params);
-    const userId = (req as any).user.id;
+    const userId = req.user.id;
     const { quizId } = data;
     const stats = await userService.getUserQuizStats(userId, quizId);
     if (stats.length === 0) {
@@ -111,8 +111,8 @@ export const getUserQuizStats = catchAsync(async (req: Request, res: Response, n
     res.status(200).json({ stats });
 });
 
-export const getUserLastActivities = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user.id;
+export const getUserLastActivities = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const {limit, page} = userSchemas.queryUserSchema.parse(req.query);
     const activities = await userService.getLastUserActivities(userId, limit, page);
     res.status(200).json({ activities });

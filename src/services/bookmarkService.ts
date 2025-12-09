@@ -1,12 +1,14 @@
 import { prisma } from '../prisma.js';
+import { Prisma } from '@prisma/client';
 import AppError from '../utils/appError.js';
 
-interface getTopBookmarkedQuizzes {
+interface GetTopBookmarkedQuizzes {
     quiz_id: number;
     title: string;
     bookmark_count: number;
     author_name: string;
 }
+
 
 export default class BookmarkService {
 
@@ -162,7 +164,7 @@ export default class BookmarkService {
     }
 
     async getTopBookmarkedQuizzes(limit: number = 5) {
-        return await prisma.$queryRaw`
+        return await prisma.$queryRaw<GetTopBookmarkedQuizzes[]>`
             SELECT 
                 q.quiz_id as quiz_id, 
                 q.title,
@@ -174,7 +176,7 @@ export default class BookmarkService {
             GROUP BY q.quiz_id, q.title, u.username
             HAVING COUNT(b.user_id) > 0
             ORDER BY bookmark_count DESC
-            LIMIT ${limit};
+            LIMIT ${Prisma.sql`${limit}`};
         `;
     }
 }

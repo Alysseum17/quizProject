@@ -4,6 +4,7 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import AuthService from '../services/authService.js';
 import { updatePasswordSchema } from '../schemas/auth.schema.js';
+import { AuthRequest } from '../utils/authRequestInterface.js';
 
 
 const authService = new AuthService();
@@ -30,7 +31,7 @@ export const signup = catchAsync(async (req: Request, res: Response) => {
     createSendToken(user, token, 201, req, res);
 });
 
-export const login = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const login = catchAsync(async (req: Request, res: Response) => {
     const data = authSchemas.loginSchema.parse(req.body);
     const {user, token} = await authService.login(data);
     createSendToken(user, token, 200, req, res);
@@ -45,7 +46,7 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
     res.status(200).json({ status: 'success' });
 });
 
-export const protect = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const protect = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
@@ -62,11 +63,11 @@ export const protect = catchAsync(async (req: Request, res: Response, next: Next
     if(currentUser.is_active === false){
         return next(new AppError('The user account has been deactivated.', 401));
     }
-    (req as any).user = currentUser;
+    req.user = currentUser;
     next();
 });
 
-export const forgotPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const forgotPassword = catchAsync(async (req: Request, res: Response) => {
     const data = authSchemas.forgotPasswordSchema.parse(req.body);
     const host = req.get('host') || 'localhost:3000';
     await authService.forgotPassword(data.email, req.protocol, host);
@@ -76,22 +77,22 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response, nex
     });
 });
 
-export const resetPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const resetPassword = catchAsync(async (req: Request, res: Response) => {
     const data = authSchemas.resetPasswordSchema.parse(req.body);
     const tokenReq = req.params.token;
     const {user,token} = await authService.resetPassword(data, tokenReq);
     createSendToken(user, token, 200, req, res);
 });
 
-export const updatePassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user.id;
+export const updatePassword = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     const data = updatePasswordSchema.parse(req.body);
     const {user, token} = await authService.updatePassword(userId, data);
     createSendToken(user, token, 200, req, res);
 });
 
-export const softDeleteAccount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user.id;
+export const softDeleteAccount = catchAsync(async (req: AuthRequest, res: Response) => {
+    const userId = req.user.id;
     await authService.softDeleteAccount(userId);
     res.status(204).json({ status: 'success', data: null });
 });

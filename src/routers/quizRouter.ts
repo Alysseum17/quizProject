@@ -10,10 +10,12 @@ router.use("/:quizId/questions", questionRouter);
 router.get("/", quizController.getAllQuiz);
 router.get("/rating", quizController.getSortedQuizByRating);
 router.get("/name/:name", quizController.findQuizByName);
-router.get("/:id", quizController.findQuizById);
+router.get("/:quizId", quizController.getFullyDetailedQuizById);
 router.post("/", protect, quizController.createQuiz);
 router.post("/complex", protect, quizController.createQuizComplex);
 router.post("/:quizId/start", protect, quizController.startQuizAttempt);
+router.post("/attempts/:attemptId/submit", protect, quizController.submitQuizAttempt);
+router.get("/attempts/:attemptId/results", protect, quizController.getQuizResults);
 router.put("/:id", protect, quizController.updateQuiz);
 router.delete("/:id", protect, quizController.softDeleteQuiz);
 
