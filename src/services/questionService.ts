@@ -1,7 +1,9 @@
 import { prisma } from "../prisma.js";
 import AppError from "../utils/appError.js";
 
-interface OptionInput {
+
+type OptionInput = {
+ {
   answer_text: string;
   is_correct: boolean;
 };
@@ -86,6 +88,76 @@ export default class QuestionService {
     await prisma.question.delete({ where: { id: questionId } });
   }
 
+  private async verifyAnswerOwnership(tx: any, answerId: number, userId: number) {
+    const answer = await tx.answerOption.findUnique({
+      where: { id: answerId },
+      include: {
+        question: {
+          include: { quiz: true },
+        },
+      },
+    });
+
+    if (!answer) {
+      throw new AppError("Answer option not found", 404);
+    }
+
+    if (answer.question.quiz.author_id !== userId) {
+      throw new AppError("You do not have permission to modify this answer", 403);
+    }
+    return answer;
+  }
+
+  async addAnswerOption(
+    userId: number,
+    questionId: number,
+    data: { answer_text: string; is_correct: boolean }
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      const question = await tx.question.findUnique({
+        where: { id: questionId },
+        include: { quiz: true },
+      });
+
+      if (!question) throw new AppError("Question not found", 404);
+      if (question.quiz.author_id !== userId) {
+        throw new AppError("You do not have permission to add answers to this question", 403);
+      }
+
+      return await tx.answerOption.create({
+        data: {
+          question_id: questionId,
+          answer_text: data.answer_text,
+          is_correct: data.is_correct,
+        },
+      });
+    });
+  }
+
+  async updateAnswerOption(
+    userId: number,
+    answerId: number,
+    data: { answer_text?: string; is_correct?: boolean }
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      await this.verifyAnswerOwnership(tx, answerId, userId);
+
+      return await tx.answerOption.update({
+        where: { id: answerId },
+        data: data,
+      });
+    });
+  }
+
+  async deleteAnswerOption(userId: number, answerId: number) {
+    return await prisma.$transaction(async (tx) => {
+      await this.verifyAnswerOwnership(tx, answerId, userId);
+
+      await tx.answerOption.delete({
+        where: { id: answerId },
+      });
+    });
+
   async getQuestionStats(quizId: number) {
     const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
     if (!quiz) throw new AppError("Quiz not found", 404);
@@ -114,3 +186,4 @@ export default class QuestionService {
     return stats;
   }
 }
+

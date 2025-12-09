@@ -33,6 +33,7 @@ const createTestQuiz = async (
 describe("Global Quiz Integration Tests", () => {
   let token: string;
   let userId: number;
+  
   beforeAll(async () => {
     await cleanupDatabase();
 
@@ -73,9 +74,9 @@ describe("Global Quiz Integration Tests", () => {
               question_type: "single_choice",
               points: 5,
               options: [
-                { answer_text: "3" },
-                { answer_text: "4", is_correct: true },
-                { answer_text: "5" },
+                { optionText: "3" },
+                { optionText: "4", isCorrect: true },
+                { optionText: "5" },
               ],
             },
           ],
@@ -154,79 +155,81 @@ describe("Global Quiz Integration Tests", () => {
       expect(response.body.quiz.is_active).toBe(false);
       expect(response.body.message).toBe("Quiz soft-deleted successfully");
     });
-    describe("Quiz Search & Filtering", () => {
-      beforeAll(async () => {
-        const quiz1 = await createTestQuiz(userId, "Math Quiz");
-        await prisma.review.create({
-          data: {
-            quiz_id: quiz1.id,
-            user_id: userId,
-            rating: 5,
-            review_text: "Excellent",
-          },
-        });
+  });
 
-        const quiz2 = await createTestQuiz(userId, "History Quiz");
-        await prisma.review.create({
-          data: {
-            quiz_id: quiz2.id,
-            user_id: userId,
-            rating: 3,
-            review_text: "Average",
-          },
-        });
-
-        await createTestQuiz(userId, "Science Quiz");
+  describe("Quiz Search & Filtering", () => {
+    beforeAll(async () => {
+      const quiz1 = await createTestQuiz(userId, "Math Quiz");
+      await prisma.review.create({
+        data: {
+          quiz_id: quiz1.id,
+          user_id: userId,
+          rating: 5,
+          review_text: "Excellent",
+        },
       });
 
-      it("GET / - should filter quizzes by rating range (4-5)", async () => {
-        const response = await request(app).get("/api/quizzes").query({
-          "rating[gte]": 4,
-          "rating[lte]": 5,
-        });
-
-        expect(response.status).toBe(200);
-        expect(response.body.items).toHaveLength(1);
-        expect(response.body.items[0].title).toBe("Math Quiz");
-        expect(Number(response.body.pagination.total)).toBe(1);
+      const quiz2 = await createTestQuiz(userId, "History Quiz");
+      await prisma.review.create({
+        data: {
+          quiz_id: quiz2.id,
+          user_id: userId,
+          rating: 3,
+          review_text: "Average",
+        },
       });
 
-      it("GET / - should search quizzes by name", async () => {
-        const response = await request(app)
-          .get("/api/quizzes")
-          .query({ name: "History" });
+      await createTestQuiz(userId, "Science Quiz");
+    });
 
-        expect(response.status).toBe(200);
-        expect(response.body.items).toHaveLength(1);
-        expect(response.body.items[0].title).toBe("History Quiz");
+    it("GET / - should filter quizzes by rating range (4-5)", async () => {
+      const response = await request(app).get("/api/quizzes").query({
+        "rating[gte]": 4,
+        "rating[lte]": 5,
       });
 
-      it("GET / - should sort quizzes by rating descending", async () => {
-        const response = await request(app).get("/api/quizzes").query({
-          sort: "desc",
-          orderBy: "average_rating",
-        });
+      expect(response.status).toBe(200);
+      expect(response.body.items).toHaveLength(1);
+      expect(response.body.items[0].title).toBe("Math Quiz");
+      expect(Number(response.body.pagination.total)).toBe(1);
+    });
 
-        expect(response.status).toBe(200);
-        const items = response.body.items;
-        expect(items.length).toBeGreaterThanOrEqual(2);
-        expect(Number(items[0].average_rating)).toBeGreaterThanOrEqual(
-          Number(items[1].average_rating)
-        );
+    it("GET / - should search quizzes by name", async () => {
+      const response = await request(app)
+        .get("/api/quizzes")
+        .query({ name: "History" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.items).toHaveLength(1);
+      expect(response.body.items[0].title).toBe("History Quiz");
+    });
+
+    it("GET / - should sort quizzes by rating descending", async () => {
+      const response = await request(app).get("/api/quizzes").query({
+        sort: "desc",
+        orderBy: "average_rating",
       });
 
-      it("GET / - should include quizzes with 0 rating when filtering broadly", async () => {
-        const response = await request(app).get("/api/quizzes").query({
-          name: "Science",
-          "rating[gte]": 0,
-        });
+      expect(response.status).toBe(200);
+      const items = response.body.items;
+      expect(items.length).toBeGreaterThanOrEqual(2);
+      expect(Number(items[0].average_rating)).toBeGreaterThanOrEqual(
+        Number(items[1].average_rating)
+      );
+    });
 
-        expect(response.status).toBe(200);
-        expect(response.body.items[0].title).toBe("Science Quiz");
-        expect(Number(response.body.items[0].average_rating)).toBe(0);
+    it("GET / - should include quizzes with 0 rating when filtering broadly", async () => {
+      const response = await request(app).get("/api/quizzes").query({
+        name: "Science",
+        "rating[gte]": 0,
       });
+
+      expect(response.status).toBe(200);
+      expect(response.body.items[0].title).toBe("Science Quiz");
+      expect(Number(response.body.items[0].average_rating)).toBe(0);
     });
   });
+
   describe("Quiz errors handling", () => {
     it("GET /:id - should return 404 for non-existent quiz", async () => {
       const response = await request(app).get("/api/quizzes/999999");
@@ -296,6 +299,7 @@ describe("Global Quiz Integration Tests", () => {
       );
     });
   });
+
   describe("Quiz Attempt Flow", () => {
     let attemptQuizId: number;
     let attemptId: number;
@@ -396,6 +400,7 @@ describe("Global Quiz Integration Tests", () => {
       ).toHaveProperty("isCorrect", true);
     });
   });
+
   describe("Quiz Attempt Errors Handling", () => {
     it("POST /start - should return 404 when starting attempt for non-existent quiz", async () => {
       const response = await request(app)
@@ -569,6 +574,139 @@ describe("Global Quiz Integration Tests", () => {
     it("DELETE /questions/:id - should return 404 for deleted question", async () => {
       const response = await request(app)
         .delete(`/api/quizzes/${createdQuizId}/questions/${questionId}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("Answer Options Management Flow", () => {
+    let answerQuizId: number;
+    let answerQuestionId: number;
+    let createdAnswerId: number;
+
+    beforeAll(async () => {
+      const quiz = await prisma.quiz.create({
+        data: {
+          title: "Answer Ops Quiz",
+          author_id: userId,
+          questions: {
+            create: [
+              {
+                question_text: "Base Question?",
+                question_type: "single_choice",
+                points: 1,
+              },
+            ],
+          },
+        },
+        include: { questions: true },
+      });
+      answerQuizId = quiz.id;
+      answerQuestionId = quiz.questions[0].id;
+    });
+
+    it("POST /:questionId/answers - should add a new answer option", async () => {
+      const response = await request(app)
+        .post(
+          `/api/quizzes/${answerQuizId}/questions/${answerQuestionId}/answers`
+        )
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          answer_text: "New Option",
+          is_correct: false,
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.data.answer.answer_text).toBe("New Option");
+      expect(response.body.data.answer.is_correct).toBe(false);
+
+      createdAnswerId = response.body.data.answer.id;
+    });
+
+    it("POST /:questionId/answers - should fail if answer_text is missing", async () => {
+      const response = await request(app)
+        .post(
+          `/api/quizzes/${answerQuizId}/questions/${answerQuestionId}/answers`
+        )
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          is_correct: true,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toMatch(/required/i);
+    });
+
+    it("PATCH /answers/:answerId - should update answer text", async () => {
+      const response = await request(app)
+        .patch(
+          `/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`
+        )
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          answer_text: "Updated Option Text",
+          is_correct: true,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.answer.answer_text).toBe("Updated Option Text");
+      expect(response.body.data.answer.is_correct).toBe(true);
+    });
+
+    it("PATCH /answers/:answerId - should forbid updating answer by non-owner", async () => {
+      const otherUser = await prisma.user.create({
+        data: {
+          username: "intruder",
+          email: "intruder@test.com",
+          password_hash: "hash",
+        },
+      });
+      const otherToken = jwt.sign(
+        { id: otherUser.id },
+        process.env.JWT_SECRET as string
+      );
+
+      const response = await request(app)
+        .patch(
+          `/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`
+        )
+        .set("Authorization", `Bearer ${otherToken}`)
+        .send({ answer_text: "Hacked" });
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toMatch(/permission/i);
+    });
+
+    it("PATCH /answers/:answerId - should return 404 for non-existent answer", async () => {
+      const response = await request(app)
+        .patch(`/api/quizzes/${answerQuizId}/questions/answers/999999`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ answer_text: "Ghost" });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("DELETE /answers/:answerId - should delete answer option", async () => {
+      const response = await request(app)
+        .delete(
+          `/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`
+        )
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(204);
+
+      const deleted = await prisma.answerOption.findUnique({
+        where: { id: createdAnswerId },
+      });
+      expect(deleted).toBeNull();
+    });
+
+    it("DELETE /answers/:answerId - should return 404 if answer already deleted", async () => {
+      const response = await request(app)
+        .delete(
+          `/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`
+        )
         .set("Authorization", `Bearer ${token}`);
 
       expect(response.status).toBe(404);

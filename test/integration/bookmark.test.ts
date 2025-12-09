@@ -198,4 +198,93 @@ describe('Bookmark Integration Tests', () => {
             expect(response.status).toBe(404);
         });
     });
+
+    describe('Bookmark Advanced Transactions', () => {
+        let bulkQuiz1: number;
+        let bulkQuiz2: number;
+        let hiddenQuizId: number;
+
+        beforeAll(async () => {
+            const q1 = await prisma.quiz.create({
+                data: { title: 'Bulk Quiz 1', author_id: secondUserId, is_active: true }
+            });
+            bulkQuiz1 = q1.id;
+
+            const q2 = await prisma.quiz.create({
+                data: { title: 'Bulk Quiz 2', author_id: secondUserId, is_active: true }
+            });
+            bulkQuiz2 = q2.id;
+
+            const q3 = await prisma.quiz.create({
+                data: { title: 'Hidden Old Quiz', author_id: secondUserId, is_active: false }
+            });
+            hiddenQuizId = q3.id;
+        });
+
+        it('POST /bulk - should add multiple bookmarks and skip duplicates', async () => {
+            await prisma.bookmark.create({
+                data: { user_id: userId, quiz_id: bulkQuiz1 }
+            });
+
+            const response = await request(app)
+                .post('/api/bookmarks/bulk')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    quizIds: [bulkQuiz1, bulkQuiz2]
+                });
+
+            expect(response.status).toBe(201);
+
+            expect(response.body.data.requested).toBe(2);
+            expect(response.body.data.added).toBe(1);
+            expect(response.body.data.duplicates_skipped).toBeGreaterThanOrEqual(1);
+
+            const count = await prisma.bookmark.count({
+                where: {
+                    user_id: userId,
+                    quiz_id: { in: [bulkQuiz1, bulkQuiz2] }
+                }
+            });
+            expect(count).toBe(2);
+        });
+
+        it('POST /bulk - should fail if quizIds is not an array', async () => {
+            const response = await request(app)
+                .post('/api/bookmarks/bulk')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ quizIds: "not-an-array" });
+
+            expect(response.status).toBe(400);
+        });
+
+        it('DELETE /cleanup - should remove bookmarks for inactive quizzes', async () => {
+            await prisma.bookmark.create({
+                data: { user_id: userId, quiz_id: hiddenQuizId }
+            });
+
+            const checkBefore = await prisma.bookmark.findUnique({
+                where: { user_id_quiz_id: { user_id: userId, quiz_id: hiddenQuizId } }
+            });
+            expect(checkBefore).not.toBeNull();
+
+            const response = await request(app)
+                .delete('/api/bookmarks/cleanup')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.data.count).toBe(1);
+            expect(response.body.data.message).toMatch(/removed 1/i);
+
+            const checkAfter = await prisma.bookmark.findUnique({
+                where: { user_id_quiz_id: { user_id: userId, quiz_id: hiddenQuizId } }
+            });
+            expect(checkAfter).toBeNull();
+
+            const activeBookmark = await prisma.bookmark.findFirst({
+                where: { user_id: userId, quiz_id: bulkQuiz2 }
+            });
+            expect(activeBookmark).not.toBeNull();
+        });
+    });
 });
+
