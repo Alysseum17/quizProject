@@ -62,3 +62,15 @@ export const updateReview = catchAsync(async (req: Request, res: Response) => {
     review: updatedReview,
   });
 });
+
+export const getReviewAnalytics = catchAsync(
+  async (req: Request, res: Response) => {
+    const analytics = await reviewService.getReviewAnalytics();
+
+    res.status(200).json({
+      status: "success",
+      results: analytics.length,
+      data: analytics,
+    });
+  }
+);
