@@ -42,3 +42,43 @@ export const deleteQuestion = catchAsync(
     res.status(204).json({ status: "success", data: null });
   }
 );
+
+export const addAnswerOption = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const questionId = Number(req.params.questionId);
+
+  const { answer_text, is_correct } = req.body;
+
+  if (!answer_text) {
+    return res.status(400).json({ status: 'fail', message: 'Answer text is required' });
+  }
+
+  const newAnswer = await questionService.addAnswerOption(userId, questionId, {
+    answer_text,
+    is_correct: is_correct || false,
+  });
+
+  res.status(201).json({ status: "success", data: { answer: newAnswer } });
+});
+
+export const updateAnswerOption = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const answerId = Number(req.params.answerId);
+  const { answer_text, is_correct } = req.body;
+
+  const updatedAnswer = await questionService.updateAnswerOption(userId, answerId, {
+    answer_text,
+    is_correct,
+  });
+
+  res.status(200).json({ status: "success", data: { answer: updatedAnswer } });
+});
+
+export const deleteAnswerOption = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const answerId = Number(req.params.answerId);
+
+  await questionService.deleteAnswerOption(userId, answerId);
+
+  res.status(204).json({ status: "success", data: null });
+});
