@@ -53,7 +53,9 @@ export default class ReviewService {
   ) {
     const offset = (query.page - 1) * query.limit;
 
-    return await prisma.review.findMany({
+    const [total, reviews] = await Promise.all([
+      prisma.review.count({ where: { quiz_id: quizId } }),
+      prisma.review.findMany({
       where: { quiz_id: quizId },
       include: {
         user: {
@@ -68,7 +70,20 @@ export default class ReviewService {
       },
       take: query.limit,
       skip: offset,
-    });
+    })]);
+    const totalPages = Math.ceil(total / query.limit);
+    const hasNextPage = query.page < totalPages;  
+    const hasPreviousPage = query.page > 1;
+    return {
+      pagination: {
+        totalItems: total,
+        totalPages,
+        currentPage: query.page,
+        hasNextPage,
+        hasPreviousPage,
+      },
+      items: reviews,
+    };
   }
 
   async deleteReview(userId: number, reviewId: number) {

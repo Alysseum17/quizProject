@@ -13,7 +13,7 @@ export const findUserByEmail = catchAsync(async (req: Request, res: Response, ne
     const { email } = data;
     if (!email) return next(new AppError('Email parameter is required', 400));
     const user = await userService.findUserByEmail(email);
-    res.status(200).json({ user });
+    res.status(200).json({ status: "success", user });
 });
 
 export const findUsersByName = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -22,7 +22,7 @@ export const findUsersByName = catchAsync(async (req: Request, res: Response, ne
     const { name } = data;
     const { limit, page } = query;
     const { pagination, items} = await userService.findUsersByName(name, limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const getUserWithDetails = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -32,7 +32,7 @@ export const getUserWithDetails = catchAsync(async (req: Request, res: Response,
     if (!user) {
         return next(new AppError('User not found', 404));
     }
-    res.status(200).json({ user });
+    res.status(200).json({ status: "success", user });
 });
 
 export const getUserQuizes = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -41,7 +41,7 @@ export const getUserQuizes = catchAsync(async (req: AuthRequest, res: Response) 
     const { limit, page } = query;
     const { userId } = data;
     const { pagination, items } = await userService.getUserQuizes(userId, limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const getCurrentUser = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -50,55 +50,55 @@ export const getCurrentUser = catchAsync(async (req: AuthRequest, res: Response,
     if (!user) {
         return next(new AppError('User not found', 404));
     }
-    res.status(200).json({ user });
+    res.status(200).json({ status: "success", user });
 });
 
 export const findTopUsersByQuizScore = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.findTopUsersByQuizScore(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const findTopAuthorsByQuizAttempts = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.findTopAuthorsByQuizAttempts(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const findTopAuthorsByQuizCounts = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.findTopAuthorsByQuizCounts(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const findTopAuthorsByAverageQuizRating = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.findTopAuthorsByAverageQuizRating(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const changeUserInfo = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.user.id;
     const data = userSchemas.changeInfoSchema.parse(req.body);
     const updatedUser = await userService.changeUserInfo(userId, data);
-    res.status(200).json({ user: updatedUser });
+    res.status(200).json({ status: "success", user: updatedUser });
 });
 
 export const getProlificAuthors = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.getProlificAuthors(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 export const getHighPerfomanceUsers = catchAsync(async (req: Request, res: Response) => {
     const query = userSchemas.queryUserSchema.parse(req.query);
     const { limit, page } = query;
     const { pagination, items } = await userService.getHighPerformanceUsers(limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 });
 
 export const getUserQuizStats = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -109,12 +109,12 @@ export const getUserQuizStats = catchAsync(async (req: AuthRequest, res: Respons
     if (stats.length === 0) {
         return next(new AppError('No stats found for this user and quiz', 404));
     }
-    res.status(200).json({ stats });
+    res.status(200).json({ status: "success", stats });
 });
 
 export const getUserLastActivities = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.user.id;
     const {limit, page} = userSchemas.queryUserSchema.parse(req.query);
     const { pagination, items } = await userService.getLastUserActivities(userId, limit, page);
-    res.status(200).json({ items, pagination });
+    res.status(200).json({ status: "success", items, pagination });
 })
