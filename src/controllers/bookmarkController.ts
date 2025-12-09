@@ -71,3 +71,32 @@ export const getTopBookmarkedQuizzes = catchAsync(async (req: Request, res: Resp
         data: { stats }
     });
 });
+
+export const cleanupInactive = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const result = await bookmarkService.cleanupInactiveBookmarks(userId);
+
+    res.status(200).json({
+        status: 'success',
+        data: result
+    });
+});
+
+export const bulkAdd = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { quizIds } = req.body;
+
+    if (!Array.isArray(quizIds) || quizIds.length === 0) {
+        return res.status(400).json({
+            status: 'fail',
+            message: 'Please provide an array of quizIds'
+        });
+    }
+
+    const result = await bookmarkService.bulkAddBookmarks(userId, quizIds);
+
+    res.status(201).json({
+        status: 'success',
+        data: result
+    });
+});

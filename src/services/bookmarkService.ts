@@ -177,5 +177,87 @@ export default class BookmarkService {
             LIMIT ${limit};
         `;
     }
+
+    async cleanupInactiveBookmarks(userId: number) {
+        return await prisma.$transaction(async (tx) => {
+            const inactiveBookmarks = await tx.bookmark.findMany({
+                where: {
+                    user_id: userId,
+                    quiz: {
+                        is_active: false
+                    }
+                },
+                select: { quiz_id: true }
+            });
+
+            const count = inactiveBookmarks.length;
+
+            if (count === 0) {
+                return { count: 0, message: 'No inactive bookmarks found' };
+            }
+
+            const idsToDelete = inactiveBookmarks.map(b => b.quiz_id);
+
+            await tx.bookmark.deleteMany({
+                where: {
+                    user_id: userId,
+                    quiz_id: { in: idsToDelete }
+                }
+            });
+
+            return {
+                count,
+                message: `Successfully removed ${count} inactive bookmarks`
+            };
+        });
+    }
+
+    async bulkAddBookmarks(userId: number, quizIds: number[]) {
+        return await prisma.$transaction(async (tx) => {
+            const validQuizzes = await tx.quiz.findMany({
+                where: {
+                    id: { in: quizIds },
+                    is_active: true
+                },
+                select: { id: true }
+            });
+
+            const validQuizIds = validQuizzes.map(q => q.id);
+
+            if (validQuizIds.length === 0) {
+                throw new AppError('No valid active quizzes found to add', 400);
+            }
+
+            const existingBookmarks = await tx.bookmark.findMany({
+                where: {
+                    user_id: userId,
+                    quiz_id: { in: validQuizIds }
+                },
+                select: { quiz_id: true }
+            });
+
+            const existingIds = new Set(existingBookmarks.map(b => b.quiz_id));
+
+            const newBookmarksData = validQuizIds
+                .filter(id => !existingIds.has(id))
+                .map(quizId => ({
+                    user_id: userId,
+                    quiz_id: quizId
+                }));
+
+            if (newBookmarksData.length > 0) {
+                await tx.bookmark.createMany({
+                    data: newBookmarksData
+                });
+            }
+
+            return {
+                requested: quizIds.length,
+                added: newBookmarksData.length,
+                duplicates_skipped: existingBookmarks.length,
+                invalid_skipped: quizIds.length - validQuizIds.length
+            };
+        });
+    }
 }
 
