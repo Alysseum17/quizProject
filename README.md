@@ -208,6 +208,7 @@ quizProject/
 │   │   ├── quiz.schema.ts
 │   │   ├── question.schema.ts
 │   │   ├── review.schema.ts
+│   │   ├── bookmark.schema.ts
 │   │   └── user.schema.ts
 │   │
 │   ├── utils/            # Utilities
@@ -582,3 +583,4 @@ ISC
 ---
 
 **Last Updated:** December 10, 2024
+
