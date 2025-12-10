@@ -443,8 +443,8 @@ enum QuestionType {
 
 ### Second Normal Form (2NF)
 ✅ Meets 1NF requirements
-✅ All non-key attributes are fully dependent on the primary key
-✅ No partial dependencies (all composite keys are in junction tables)
+✅ All non-key attributes are fully dependent on the entire composite primary key
+✅ No partial dependencies 
 
 ### Third Normal Form (3NF)
 ✅ Meets 2NF requirements
@@ -452,7 +452,6 @@ enum QuestionType {
 ✅ All non-key attributes depend only on the primary key
 
 **Example:** 
-- Quiz score is stored in `QuizAttempt`, not derived from `QuestionResponse` records
 - User email is in `User` table, not duplicated in `Review` or `QuizAttempt`
 
 ---
