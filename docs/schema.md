@@ -605,7 +605,6 @@ Indexes on foreign key columns for JOIN performance:
 **Pros:**
 - Natural keys prevent duplicate entries
 - No need for surrogate key
-- More efficient queries (no extra JOIN on ID)
 
 **Cons:**
 - Slightly more complex foreign key relationships
