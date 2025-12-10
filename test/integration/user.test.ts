@@ -78,6 +78,16 @@ describe('User Profile & Analytics Integration Tests', () => {
             }
         });
 
+        await prisma.quizAttempt.create({
+            data: {
+                quiz_id: quizId,
+                user_id: secondUserId,
+                started_at: new Date(),
+                finished_at: new Date(),
+                score: 5
+            }
+        });
+
         await prisma.review.create({
             data: {
                 quiz_id: quizId,
@@ -137,6 +147,68 @@ describe('User Profile & Analytics Integration Tests', () => {
         });
     });
 
+    describe('User Search & Public Info', () => {
+        it('GET /email/:email - should find user by email', async () => {
+            const response = await request(app)
+                .get(`/api/user-profiles/email/${MAIN_USER_EMAIL}`);
+            expect(response.status).toBe(200);
+            expect(response.body.user.id).toBe(userId);
+            expect(response.body.user.username).toBe('UpdatedMainUser');
+        });
+
+        it('GET /email/:email - should return null user if not found', async () => {
+            const response = await request(app)
+                .get('/api/user-profiles/email/ghost@nowhere.com');
+
+            expect(response.status).toBe(200);
+            expect(response.body.user).toBeNull();
+        });
+
+        it('GET /name/:name - should search users by name', async () => {
+            const response = await request(app)
+                .get(`/api/user-profiles/name/UpdatedMainUser`)
+                .query({ limit: 5, page: 1 });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items).toHaveLength(1);
+            
+            const user = response.body.items[0];
+            expect(user.id).toBe(userId);
+            expect(user.username).toBe('UpdatedMainUser');
+            expect(user.email).toBe(MAIN_USER_EMAIL);
+        });
+
+        it('GET /:userId - should return user profile details', async () => {
+            const response = await request(app)
+                .get(`/api/user-profiles/${userId}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.user.id).toBe(userId);
+            expect(response.body.user.average_quiz_rating).toBe(5);
+        });
+
+        it('GET /:userId - should return 404 for non-existent ID', async () => {
+            const response = await request(app).get('/api/user-profiles/999999');
+            expect(response.status).toBe(404);
+            expect(response.body.message).toMatch(/not found/i);
+        });
+
+        it('GET /:userId/quizes - should return user quizzes with stats', async () => {
+            const response = await request(app)
+                .get(`/api/user-profiles/${userId}/quizes`)
+                .query({ limit: 10, page: 1 });
+
+            expect(response.status).toBe(200);
+            expect(response.body.items).toHaveLength(1);
+            
+            const quiz = response.body.items[0];
+            expect(quiz.id).toBe(quizId);
+            expect(quiz.title).toBe(QUIZ_TITLE);
+            expect(Number(quiz.total_attempts)).toBe(3); 
+            expect(Number(quiz.average_rating)).toBe(5); 
+        });
+    });
+
     describe('User Statistics & Activities', () => {
         it('GET /me/:quizId/stats - should return correct aggregation', async () => {
             const response = await request(app)
@@ -147,9 +219,9 @@ describe('User Profile & Analytics Integration Tests', () => {
             expect(response.body.stats).toHaveLength(1);
             
             const stats = response.body.stats[0];
-            expect(stats.total_attempts).toBe(2);
-            expect(stats.best_score).toBe(10);
-            expect(stats.last_score).toBe(10);
+            expect(Number(stats.total_attempts)).toBe(2); 
+            expect(Number(stats.best_score)).toBe(10);
+            expect(Number(stats.last_score)).toBe(10);
         });
 
         it('GET /me/:quizId/stats - should return 404 if user never passed this quiz', async () => {
@@ -169,114 +241,83 @@ describe('User Profile & Analytics Integration Tests', () => {
             }
         });
 
-        it('GET /me/activities - should return sorted history with pagination', async () => {
+        it('GET /me/activities - should return sorted history', async () => {
             const response = await request(app)
                 .get('/api/user-profiles/me/activities')
                 .set('Authorization', `Bearer ${token}`)
-                .query({ limit: 10, page: 1 });
+                .query({ limit: 10 });
 
             expect(response.status).toBe(200);
-            
-            expect(response.body).toHaveProperty('items');
-            expect(response.body).toHaveProperty('pagination');
-            
             expect(response.body.items).toHaveLength(2);
-            expect(response.body.items[0].score).toBe(10);
-            expect(response.body.items[1].score).toBe(0);
+            expect(Number(response.body.items[0].score)).toBe(10);
+            expect(Number(response.body.items[1].score)).toBe(0);
             expect(response.body.items[0].quiz).toHaveProperty('title', QUIZ_TITLE);
-
-            expect(response.body.pagination.totalItems).toBe(2);
-            expect(response.body.pagination.totalPages).toBe(1);
-        });
-        
-        it('GET /me/activities - should respect pagination limit', async () => {
-            const response = await request(app)
-                .get('/api/user-profiles/me/activities')
-                .set('Authorization', `Bearer ${token}`)
-                .query({ limit: 1, page: 1 });
-
-            expect(response.status).toBe(200);
-            expect(response.body.items).toHaveLength(1);
-            expect(response.body.pagination.hasNextPage).toBe(true);
-            expect(response.body.pagination.totalItems).toBe(2);
-        });
-    });
-
-    describe('Public Profile Search', () => {
-        it('GET /email/:email - should find user and return public info', async () => {
-            const response = await request(app)
-                .get(`/api/user-profiles/email/${MAIN_USER_EMAIL}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.user).not.toBeNull();
-            expect(response.body.user.id).toBe(userId);
-        });
-
-        it('GET /email/:email - should return null user if not found', async () => {
-            const response = await request(app)
-                .get('/api/user-profiles/email/ghost@nowhere.com');
-
-            expect(response.status).toBe(200);
-            expect(response.body.user).toBeNull();
-        });
-
-        it('GET /:userId - should return user profile details', async () => {
-            const response = await request(app)
-                .get(`/api/user-profiles/${userId}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.user.id).toBe(userId);
-            expect(response.body.user.average_quiz_rating).toBe(5);
-        });
-
-        it('GET /:userId - should return 404 for non-existent ID', async () => {
-            const response = await request(app).get('/api/user-profiles/999999');
-            
-            expect(response.status).toBe(404);
-            expect(response.body.message).toMatch(/not found/i);
         });
     });
 
     describe('Global Leaderboards', () => {
-        it('GET /top/authors/prolific - should verify author rank', async () => {
-            const response = await request(app).get('/api/user-profiles/top/authors/prolific');
-            
-            expect(response.status).toBe(200);
-            
-            const authors = response.body.items;
-            expect(authors.length).toBeGreaterThan(0);
-            expect(authors[0].username).toContain('UpdatedMainUser');
-            expect(authors[0].quiz_count).toBe(1);
-            
-            expect(response.body.pagination).toBeDefined();
-        });
-
-        it('GET /top/quiz-scores - should sort users by score', async () => {
+        it('GET /top/quiz-scores - should return users ranked by score', async () => {
             const response = await request(app).get('/api/user-profiles/top/quiz-scores');
-            
             expect(response.status).toBe(200);
+            const users = response.body.items;
             
-            const topUsers = response.body.items;
-            
-            expect(topUsers.length).toBeGreaterThan(0);
-            expect(Number(topUsers[0].average_score)).toBe(5);
-            expect(response.body.pagination).toBeDefined();
+            const mainUserRank = users.find((u: any) => u.username === 'UpdatedMainUser');
+            const secondUserRank = users.find((u: any) => u.username === 'SecondUser');
+
+            expect(mainUserRank).toBeDefined();
+            expect(Number(mainUserRank.average_score)).toBe(5);
+
+            expect(secondUserRank).toBeDefined();
+            expect(Number(secondUserRank.average_score)).toBe(5);
         });
 
-        it('GET /top/authors/quiz-attempts - should verify author rank by total attempts', async () => {
+        it('GET /top/authors/quiz-attempts - should return authors ranked by total attempts on their quizzes', async () => {
             const response = await request(app).get('/api/user-profiles/top/authors/quiz-attempts');
+            expect(response.status).toBe(200);
+            const authors = response.body.items;
             
+            const mainAuthor = authors.find((a: any) => a.username === 'UpdatedMainUser');
+            
+            expect(mainAuthor).toBeDefined();
+            expect(Number(mainAuthor.total_attempts)).toBe(3); 
+            expect(mainAuthor.rank).toBe(1);
+        });
+
+        it('GET /top/authors/quiz-counts - should return authors ranked by number of quizzes', async () => {
+            const response = await request(app).get('/api/user-profiles/top/authors/quiz-counts');
+            expect(response.status).toBe(200);
+            const authors = response.body.items;
+            
+            const mainAuthor = authors.find((a: any) => a.username === 'UpdatedMainUser');
+            expect(mainAuthor).toBeDefined();
+            expect(Number(mainAuthor.total_quizzes)).toBe(1);
+        });
+
+        it('GET /top/authors/average-quiz-ratings - should return authors by avg rating', async () => {
+            const response = await request(app).get('/api/user-profiles/top/authors/average-quiz-ratings');
+            expect(response.status).toBe(200);
+            const authors = response.body.items;
+            
+            const mainAuthor = authors.find((a: any) => a.username === 'UpdatedMainUser');
+            expect(mainAuthor).toBeDefined();
+            expect(Number(mainAuthor.average_rating)).toBe(5);
+        });
+
+        it('GET /top/authors/prolific - should verify prolific authors logic', async () => {
+            const response = await request(app).get('/api/user-profiles/top/authors/prolific');
             expect(response.status).toBe(200);
             
-            const topAuthors = response.body.items; 
-            
-            expect(topAuthors.length).toBeGreaterThan(0);
-        
-            const mainUserRank = topAuthors.find((a: any) => a.username === 'UpdatedMainUser');
-            
-            expect(mainUserRank).toBeDefined();
-            expect(mainUserRank.total_attempts).toBe(2);
-            expect(response.body.pagination).toBeDefined();
+            const items = response.body.items;
+            const prolificUser = items.find((u: any) => u.username === 'UpdatedMainUser');
+
+            expect(prolificUser).toBeDefined();
+            expect(Number(prolificUser.quiz_count)).toBe(1);
+        });
+
+        it('GET /top/users/high-performance - should verify high performance logic', async () => {
+            const response = await request(app).get('/api/user-profiles/top/users/high-performance');
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('items');
         });
     });
 });

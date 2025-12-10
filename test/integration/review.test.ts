@@ -104,9 +104,9 @@ describe("Review Integration Tests", () => {
       expect(response.body.pagination).toHaveProperty("totalItems");
     });
 
-    it("GET /api/reviews/analytics - should get analytics", async () => {
+    it("GET /api/reviews/:quizId/analytics - should get analytics", async () => {
       const response = await request(app)
-        .get("/api/reviews/analytics")
+        .get(`/api/reviews/${quizId}/analytics`)
         .set("Authorization", `Bearer ${authorToken}`);
 
       expect(response.status).toBe(200);

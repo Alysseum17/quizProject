@@ -122,7 +122,7 @@ export default class ReviewService {
     });
   }
 
-  async getReviewAnalytics() {
+  async getReviewAnalytics(quizId: number) {
     const results = await prisma.$queryRaw<any[]>`
             SELECT 
                 q.title AS quiz_title,
@@ -144,6 +144,7 @@ export default class ReviewService {
             FROM "Quiz" q
             JOIN "Review" r ON q.quiz_id = r.quiz_id
             JOIN "User" u ON q.author_id = u.user_id 
+            WHERE q.quiz_id = ${quizId} AND q.is_active = true
             GROUP BY q.quiz_id, u.username
             ORDER BY total_reviews DESC;
         `;

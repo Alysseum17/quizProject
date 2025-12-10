@@ -103,7 +103,7 @@ export default class QuizService {
 
     async findQuizByName(name: string) {
         const quizzes = await prisma.quiz.findMany({
-            where: { title: { contains: name } },
+            where: { title: { contains: name }, is_active: true },
             include: {
                 _count: {
                     select: { questions: true, quiz_attempts: true }
@@ -177,7 +177,7 @@ export default class QuizService {
                 Prisma.sql`average_rating`;
         const whereAndHavingClause = Prisma.sql`
             FROM "Quiz" q
-            LEFT JOIN "Review" r ON q.quiz_id = r.quiz_id
+            LEFT JOIN "Review" r ON q.quiz_id = r.quiz_id AND q.is_active = true
             WHERE q.title ILIKE ${searchPattern}
             GROUP BY q.quiz_id, q.title
             HAVING COALESCE(AVG(r.rating), 0) >= ${query.rating.gte} AND COALESCE(AVG(r.rating), 0) <= ${query.rating.lte}

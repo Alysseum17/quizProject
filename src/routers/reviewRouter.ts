@@ -4,7 +4,7 @@ import { protect } from "../controllers/authController.js";
 
 const router = express.Router({ mergeParams: true });
 
-router.get("/analytics", reviewController.getReviewAnalytics);
+router.get("/:quizId/analytics", reviewController.getReviewAnalytics);
 
 router
   .route("/")

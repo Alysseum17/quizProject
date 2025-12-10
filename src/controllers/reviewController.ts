@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import catchAsync from "../utils/catchAsync.js";
 import ReviewService from "../services/reviewService.js";
 import * as reviewSchemas from "../schemas/review.schema.js";
+import * as quizSchemas from "../schemas/quiz.schema.js";
 import { AuthRequest } from "../utils/authRequestInterface.js";
 
 const reviewService = new ReviewService();
@@ -63,7 +64,8 @@ export const updateReview = catchAsync(async (req: AuthRequest, res: Response) =
 
 export const getReviewAnalytics = catchAsync(
   async (req: Request, res: Response) => {
-    const analytics = await reviewService.getReviewAnalytics();
+    const {quizId} = quizSchemas.quizIdParamSchema.parse(req.params);
+    const analytics = await reviewService.getReviewAnalytics(quizId);
 
     res.status(200).json({
       status: "success",
