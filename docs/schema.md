@@ -461,26 +461,105 @@ enum QuestionType {
 ### Primary Indexes (Automatic)
 All `PRIMARY KEY` constraints automatically create unique indexes.
 
+## Index Strategy
+
 ### Foreign Key Indexes
 Indexes on foreign key columns for JOIN performance:
-- `Quiz.author_id`
-- `Question.quiz_id`
-- `AnswerOption.question_id`
-- `QuizAttempt.user_id`, `quiz_id`
-- `QuestionResponse.quiz_attempt_id`, `question_id`
-- `Review.user_id`, `quiz_id`
-- `Bookmark.user_id`
+
+- **`Quiz` `author_id`** - For finding all quizzes by specific author, used in:
+  - Author profile pages showing their quizzes
+  - Top authors queries (JOIN User → Quiz)
+  - Quiz creation statistics
+  
+- **`Question` `quiz_id`** - For loading all questions for a quiz, used in:
+  - Quiz detail page with questions
+  - Quiz attempt preparation
+  - Question count aggregations
+  
+- **`AnswerOption` `question_id`** - For fetching answer options for questions, used in:
+  - Displaying question choices to users
+  - Answer validation during quiz submission
+  - Question editing interface
+  
+- **`QuizAttempt` `user_id`** - For user's quiz history, used in:
+  - User dashboard showing attempt history
+  - User performance analytics
+  - Top users by score queries
+  
+- **`QuizAttempt` `quiz_id`** - For quiz popularity metrics, used in:
+  - Total attempts per quiz
+  - Quiz analytics dashboard
+  - Top quizzes by attempts
+  
+- **`QuestionResponse` `quiz_attempt_id`** - For loading attempt results, used in:
+  - Detailed quiz results page
+  - Score calculation verification
+  - Response review for grading
+  
+- **`QuestionResponse` `question_id`** - For question-level analytics, used in:
+  - Question difficulty analysis
+  - Most missed questions report
+  - Question performance tracking
+  
+- **`Review` `user_id`** - For user's review history, used in:
+  - User profile showing their reviews
+  - Preventing duplicate reviews
+  - User contribution tracking
+  
+- **`Review` `quiz_id`** - For quiz review aggregation, used in:
+  - Quiz detail page with reviews
+  - Average rating calculations
+  - Review count per quiz
+  
+- **`Bookmark` `user_id`** - For user's bookmarked quizzes, used in:
+  - User bookmarks page
+  - Bookmark existence checks
+  - User saved content management
+
+---
 
 ### Composite Indexes
-- `Review(quiz_id, created_at)` - For paginated quiz reviews
-- `QuizAttempt(user_id, quiz_id)` WHERE `finished_at IS NULL` - For finding ongoing attempts
-- `QuizAttempt(user_id, started_at)` - For user attempt history
-- `User(reset_token, reset_token_expires_at)` - For password reset lookups
+
+- **`Review` `(quiz_id, created_at)`** - For paginated quiz reviews sorted by date, used in:
+  - Quiz review page with newest/oldest sorting
+  - Recent reviews widget
+  - Review timeline display
+
+- **`QuizAttempt` `(user_id, quiz_id) WHERE finished_at IS NULL`** - For finding ongoing attempts, used in:
+  - Checking if user has unfinished attempt before starting new one
+  - Resume quiz functionality
+  - Abandoned attempt cleanup jobs
+
+- **`QuizAttempt` `(user_id, started_at)`** - For user attempt history ordered by time, used in:
+  - User activity timeline
+  - Last activity tracking
+  - Chronological attempt listing
+
+- **`User` `(reset_token, reset_token_expires_at)`** - For password reset lookups, used in:
+  - Password reset token validation
+  - Finding user by reset token
+  - Expired token cleanup
+
+---
 
 ### Conditional Indexes
-- `Quiz.author_id` WHERE `is_active = true`
-- `Quiz.title` WHERE `is_active = true`
-- `Question.quiz_id` WHERE `is_active = true`
+
+- **`Quiz` `author_id WHERE is_active = true`** - For active quiz listings by author, used in:
+  - Public author profiles (only show active quizzes)
+  - Author quiz count (excluding deleted)
+  - Top authors rankings
+
+- **`Quiz` `title WHERE is_active = true`** - For searching active quizzes by name, used in:
+  - Quiz search functionality
+  - Autocomplete suggestions
+  - Public quiz directory
+
+- **`Question` `quiz_id WHERE is_active = true`** - For counting active questions per quiz, used in:
+  - Quiz metadata (total questions count)
+  - Quiz validity checks
+  - Question aggregation queries
+
+---
 
 **Rationale:** Conditional indexes reduce index size and improve performance for common queries that filter by `is_active = true`.
 
