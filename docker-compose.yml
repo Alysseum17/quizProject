@@ -1,9 +1,3 @@
-version: '3.8'
-
-x-common-variables: &common-variables
-
-  UID: ${HOST_UID:-1000}
-  GID: ${HOST_GID:-1000}
 
 services:
   postgres:
@@ -11,18 +5,16 @@ services:
     container_name: quiz_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: quizuser
-      POSTGRES_PASSWORD: quizpassword123
-      POSTGRES_DB: quizdb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - quiz_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U quizuser -d quizdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,21 +26,20 @@ services:
       target: development
     container_name: quiz_app_dev
     restart: unless-stopped
-    user: "${HOST_UID}:${HOST_GID}"
     ports:
-      - "3000:3000"
+      - "${PORT}:3000"
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://quizuser:quizpassword123@postgres:5432/quizdb?schema=public
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       PORT: 3000
-      JWT_SECRET: 209007a35b2b1ba87d07ea5d8d6bfd00905add6e605bede70d08fbbbb8b456c04867221a8f9546b04733830bda750bea63779e3a5f52e9d91e66add33f9bfb4f
-      JWT_EXPIRES_IN: 7d
-      RESET_TOKEN_EXPIRY_MINUTES: 10
-      EMAIL_HOST: sandbox.smtp.mailtrap.io
-      EMAIL_PORT: 2525
-      EMAIL_USERNAME: 3bfec1feb59b03
-      EMAIL_PASSWORD: 61941ce50e67ad
-      EMAIL_FROM: noreply@quiz-app.com
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      RESET_TOKEN_EXPIRY_MINUTES: ${RESET_TOKEN_EXPIRY_MINUTES}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
     volumes:
       - .:/app:z
       - /app/node_modules
@@ -57,7 +48,7 @@ services:
         condition: service_healthy
     networks:
       - quiz_network
-    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run start:dev"
+    command: sh -c "npx prisma migrate deploy && npm run start:dev"
     profiles:
       - dev
 
@@ -69,19 +60,19 @@ services:
     container_name: quiz_app_prod
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${PORT}:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://quizuser:quizpassword123@postgres:5432/quizdb?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       PORT: 3000
-      JWT_SECRET: 209007a35b2b1ba87d07ea5d8d6bfd00905add6e605bede70d08fbbbb8b456c04867221a8f9546b04733830bda750bea63779e3a5f52e9d91e66add33f9bfb4f
-      JWT_EXPIRES_IN: 7d
-      RESET_TOKEN_EXPIRY_MINUTES: 10
-      EMAIL_HOST: sandbox.smtp.mailtrap.io
-      EMAIL_PORT: 2525
-      EMAIL_USERNAME: 3bfec1feb59b03
-      EMAIL_PASSWORD: 61941ce50e67ad
-      EMAIL_FROM: noreply@quiz-app.com
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      RESET_TOKEN_EXPIRY_MINUTES: ${RESET_TOKEN_EXPIRY_MINUTES}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,7 +82,6 @@ services:
     profiles:
       - prod
 
-  # pgAdmin (веб-інтерфейс для БД)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: quiz_pgadmin

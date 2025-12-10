@@ -22,8 +22,23 @@
   "dev": "nodemon --exec tsx src/server.ts",
   "start": "node dist/server.js",
   "start:dev": "tsx src/server.ts",
+  "docker:build": "docker-compose --profile dev build --no-cache",
+  "docker:dev": "docker-compose --profile dev up -d",
+  "docker:down": "docker-compose --profile dev down -v",
+  "docker:seed": "docker-compose --profile dev exec app_dev npx prisma db seed",
+  "test:db:up": "docker-compose -f docker-compose.test.yml --env-file .env.test up -d postgres_test",
+  "test:db:down": "docker-compose -f docker-compose.test.yml --env-file .env.test down -v",
+  "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
   "test": "dotenv -e .env.test -- jest --runInBand",
-  "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy"
+  "test:unit": "dotenv -e .env.test -- jest --testPathPatterns=unit --runInBand",
+  "test:integration": "dotenv -e .env.test -- jest --testPathPatterns=integration --runInBand",
+  "test:watch": "dotenv -e .env.test -- jest --watch",
+  "test:coverage": "dotenv -e .env.test -- jest --coverage --runInBand",
+    
+  "docker:test": "docker-compose -f docker-compose.test.yml --env-file .env.test up --abort-on-container-exit --exit-code-from app_test",
+  "docker:test:build": "docker-compose -f docker-compose.test.yml --env-file .env.test up --build --abort-on-container-exit --exit-code-from app_test",
+  "docker:test:down": "docker-compose -f docker-compose.test.yml --env-file .env.test down -v"
+
 },
   "devDependencies": {
     "@types/compression": "^1.8.1",
