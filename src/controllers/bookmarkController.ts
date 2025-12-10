@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import catchAsync from "../utils/catchAsync.js";
 import BookmarkService from "../services/bookmarkService.js";
-import { quizIdParamSchema, quizQuerySchema } from "../schemas/quiz.schema.js";
+import { quizIdParamSchema, quizQuerySchema,  quizIdsParamSchema } from "../schemas/quiz.schema.js";
+import {updateBookmarkNoteSchema} from "../schemas/bookmark.schema.js";
 import { AuthRequest } from "../utils/authRequestInterface.js";
 
 const bookmarkService = new BookmarkService();
@@ -49,11 +50,7 @@ export const getMyBookmarks = catchAsync(async (req: AuthRequest, res: Response)
 export const updateBookmarkNote = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.user.id;
     const { quizId } = quizIdParamSchema.parse(req.params);
-    const { note } = req.body;
-
-    if (typeof note !== 'string') {
-        return res.status(400).json({ status: 'fail', message: 'Note must be a string' });
-    }
+    const { note } = updateBookmarkNoteSchema.parse(req.body);
 
     const bookmark = await bookmarkService.updateBookmarkNote(userId, quizId, note);
 
@@ -85,15 +82,7 @@ export const cleanupInactive = catchAsync(async (req: Request, res: Response) =>
 
 export const bulkAdd = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    const { quizIds } = req.body;
-
-    if (!Array.isArray(quizIds) || quizIds.length === 0) {
-        return res.status(400).json({
-            status: 'fail',
-            message: 'Please provide an array of quizIds'
-        });
-    }
-
+    const { quizIds } = quizIdsParamSchema.parse(req.body);
     const result = await bookmarkService.bulkAddBookmarks(userId, quizIds);
 
     res.status(201).json({

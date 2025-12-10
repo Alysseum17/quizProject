@@ -449,4 +449,196 @@ describe('Global Quiz Integration Tests', () => {
             expect(submitResponse.body.message).toBe('This attempt is already submitted');
         });
     });
+      describe("Question Management Flow", () => {
+    let questionId: number;
+    let createdQuizId: number;
+
+    beforeAll(async () => {
+      const quiz = await createTestQuiz(userId, "Question Flow Quiz");
+      createdQuizId = quiz.id;
+    });
+
+    it("POST /:quizId/questions - should add a new question", async () => {
+      const response = await request(app)
+        .post(`/api/quizzes/${createdQuizId}/questions`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          question_text: "Integration Test Question",
+          question_type: "multiple_choice",
+          points: 10,
+          options: [
+            { answer_text: "Option A", is_correct: true },
+            { answer_text: "Option B", is_correct: false },
+            { answer_text: "Option C", is_correct: true },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe("success");
+      expect(response.body.question.question_text).toBe(
+        "Integration Test Question"
+      );
+      expect(response.body.question.points).toBe(10);
+      expect(response.body.question.answer_options).toHaveLength(3);
+
+      questionId = response.body.question.id;
+    });
+
+    it("GET /:quizId/questions/stats - should get stats", async () => {
+      const response = await request(app)
+        .get(`/api/quizzes/${createdQuizId}/questions/stats`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("success");
+      expect(Array.isArray(response.body.stats)).toBe(true);
+
+      const multipleChoiceStat = response.body.stats.find(
+        (s: any) => s.question_type === "multiple_choice"
+      );
+      expect(multipleChoiceStat).toBeDefined();
+      expect(multipleChoiceStat._sum.points).toBeGreaterThanOrEqual(10);
+    });
+
+    it("PATCH /questions/:id - should update question", async () => {
+      const response = await request(app)
+        .patch(`/api/quizzes/${createdQuizId}/questions/${questionId}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          question_text: "Updated Question Text",
+          points: 15,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.question.question_text).toBe(
+        "Updated Question Text"
+      );
+      expect(response.body.question.points).toBe(15);
+    });
+
+    it("DELETE /questions/:id - should delete question", async () => {
+      const response = await request(app)
+        .delete(`/api/quizzes/${createdQuizId}/questions/${questionId}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(204);
+    });
+
+    it("DELETE /questions/:id - should return 404 for deleted question", async () => {
+      const response = await request(app)
+        .delete(`/api/quizzes/${createdQuizId}/questions/${questionId}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(404);
+    });
+  });
+    describe('Answer Options Management Flow', () => {
+        let answerQuizId: number;
+        let answerQuestionId: number;
+        let createdAnswerId: number;
+
+        beforeAll(async () => {
+            const quiz = await prisma.quiz.create({
+                data: {
+                    title: 'Answer Ops Quiz',
+                    author_id: userId,
+                    questions: {
+                        create: [{
+                            question_text: 'Base Question?',
+                            question_type: 'single_choice',
+                            points: 1
+                        }]
+                    }
+                },
+                include: { questions: true }
+            });
+            answerQuizId = quiz.id;
+            answerQuestionId = quiz.questions[0].id;
+        });
+
+        it('POST /:questionId/answers - should add a new answer option', async () => {
+            const response = await request(app)
+                .post(`/api/quizzes/${answerQuizId}/questions/${answerQuestionId}/answers`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    answer_text: 'New Option',
+                    is_correct: false
+                });
+
+            expect(response.status).toBe(201);
+            expect(response.body.data.answer.answer_text).toBe('New Option');
+            expect(response.body.data.answer.is_correct).toBe(false);
+
+            createdAnswerId = response.body.data.answer.id;
+        });
+
+        it('POST /:questionId/answers - should fail if answer_text is missing', async () => {
+            const response = await request(app)
+                .post(`/api/quizzes/${answerQuizId}/questions/${answerQuestionId}/answers`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    is_correct: true
+                });
+
+            expect(response.status).toBe(400);
+            expect(response.body.message).toMatch(/Invalid input data/i);
+        });
+
+        it('PATCH /answers/:answerId - should update answer text', async () => {
+            const response = await request(app)
+                .patch(`/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    answer_text: 'Updated Option Text',
+                    is_correct: true
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body.data.answer.answer_text).toBe('Updated Option Text');
+            expect(response.body.data.answer.is_correct).toBe(true);
+        });
+
+        it('PATCH /answers/:answerId - should forbid updating answer by non-owner', async () => {
+            const otherUser = await prisma.user.create({
+                data: { username: 'intruder', email: 'intruder@test.com', password_hash: 'hash' }
+            });
+            const otherToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET as string);
+
+            const response = await request(app)
+                .patch(`/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`)
+                .set('Authorization', `Bearer ${otherToken}`)
+                .send({ answer_text: 'Hacked' });
+
+            expect(response.status).toBe(403);
+            expect(response.body.message).toMatch(/permission/i);
+        });
+
+        it('PATCH /answers/:answerId - should return 404 for non-existent answer', async () => {
+            const response = await request(app)
+                .patch(`/api/quizzes/${answerQuizId}/questions/answers/999999`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ answer_text: 'Ghost' });
+
+            expect(response.status).toBe(404);
+        });
+
+        it('DELETE /answers/:answerId - should delete answer option', async () => {
+            const response = await request(app)
+                .delete(`/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(204);
+
+            const deleted = await prisma.answerOption.findUnique({ where: { id: createdAnswerId } });
+            expect(deleted).toBeNull();
+        });
+
+        it('DELETE /answers/:answerId - should return 404 if answer already deleted', async () => {
+            const response = await request(app)
+                .delete(`/api/quizzes/${answerQuizId}/questions/answers/${createdAnswerId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(404);
+        });
+    });
 });

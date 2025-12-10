@@ -49,8 +49,7 @@ export const getSortedQuizByRating = catchAsync(async (req: Request, res: Respon
 
 export const createQuizComplex = catchAsync(async (req: AuthRequest, res: Response) => {
     const authorId = req.user.id;
-    const data = req.body;
-    const quizData = quizSchemas.quizComplexSchema.parse(data);
+    const quizData = quizSchemas.quizComplexSchema.parse(req.body);
     const newQuiz = await quizService.createQuizComplex(quizData, authorId);
     res.status(201).json({ status: "success", quiz: newQuiz });
 });

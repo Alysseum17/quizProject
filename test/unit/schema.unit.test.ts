@@ -1,7 +1,8 @@
-import zod from 'zod';
 import * as authSchema from '../../src/schemas/auth.schema.js';
 import * as quizSchema from '../../src/schemas/quiz.schema.js';
 import * as userSchema from '../../src/schemas/user.schema.js';
+import * as reviewSchema from '../../src/schemas/review.schema.js';
+import * as bookmarkSchema from '../../src/schemas/bookmark.schema.js';
 import { de } from 'zod/locales';
 
 describe('Schema Validation Unit Tests', () => {
@@ -312,6 +313,117 @@ describe('Schema Validation Unit Tests', () => {
                       ])('should fail with %s', (_, invalidData) => {
                 expect(() => userSchema.findUserByIdSchema.parse(invalidData)).toThrow();
             });
+        });
+    });
+    describe('Review Schema', () => {
+        describe('Create Review Schema', () => {
+            const baseValidData = {
+                rating: 5,
+                review_text: 'Great quiz, highly recommended!'
+            };
+            it('should pass with valid data', () => {
+                expect(() => reviewSchema.createReviewSchema.parse(baseValidData)).not.toThrow();
+            });
+            it('should pass without optional review_text', () => {
+                const dataWithoutText = { rating: 4 };
+                expect(() => reviewSchema.createReviewSchema.parse(dataWithoutText)).not.toThrow();
+            });
+            test.each([
+                ['missing rating', { review_text: 'text only' }],
+                ['rating less than 1', { ...baseValidData, rating: 0 }],
+                ['rating greater than 5', { ...baseValidData, rating: 6 }],
+                ['non-number rating', { ...baseValidData, rating: '5' }] 
+            ])('should fail with %s', (_, invalidData) => {
+                expect(() => reviewSchema.createReviewSchema.parse(invalidData)).toThrow();
+            });
+        });
+
+        describe('Update Review Schema', () => {
+            const baseValidData = {
+                rating: 3,
+                review_text: 'Updated review text'
+            };
+            it('should pass with valid data', () => {
+                expect(() => reviewSchema.updateReviewSchema.parse(baseValidData)).not.toThrow();
+            });
+            it('should pass with partial data (rating only)', () => {
+                expect(() => reviewSchema.updateReviewSchema.parse({ rating: 4 })).not.toThrow();
+            });
+            it('should pass with partial data (text only)', () => {
+                expect(() => reviewSchema.updateReviewSchema.parse({ review_text: 'New text' })).not.toThrow();
+            });
+            test.each([
+                ['rating less than 1', { ...baseValidData, rating: 0 }],
+                ['rating greater than 5', { ...baseValidData, rating: 6 }]
+            ])('should fail with %s', (_, invalidData) => {
+                expect(() => reviewSchema.updateReviewSchema.parse(invalidData)).toThrow();
+            });
+        });
+
+        describe('Get Reviews Query Schema', () => {
+            const baseValidData = {
+                sort: 'rating',
+                order: 'asc',
+                page: 2,
+                limit: 20
+            };
+            it('should pass with valid data', () => {
+                expect(() => reviewSchema.getReviewsQuerySchema.parse(baseValidData)).not.toThrow();
+            });
+            it('should pass with defaults (empty object)', () => {
+                expect(() => reviewSchema.getReviewsQuerySchema.parse({})).not.toThrow();
+            });
+            it('should coerce string numbers for page and limit', () => {
+                const dataWithStrings = { page: '5', limit: '15' };
+                expect(() => reviewSchema.getReviewsQuerySchema.parse(dataWithStrings)).not.toThrow();
+            });
+            test.each([
+                ['invalid sort field', { ...baseValidData, sort: 'author' }],
+                ['invalid order', { ...baseValidData, order: 'random' }],
+                ['zero page', { ...baseValidData, page: 0 }],
+                ['negative page', { ...baseValidData, page: -1 }],
+                ['zero limit', { ...baseValidData, limit: 0 }],
+                ['negative limit', { ...baseValidData, limit: -5 }]
+            ])('should fail with %s', (_, invalidData) => {
+                expect(() => reviewSchema.getReviewsQuerySchema.parse(invalidData)).toThrow();
+            });
+        });
+    });
+    describe('Update Bookmark Note Schema', () => {
+        const baseValidData = {
+            note: 'This is a valid note for a bookmark.'
+        };
+        it('should pass with valid data', () => {
+            expect(() => bookmarkSchema.updateBookmarkNoteSchema.parse(baseValidData)).not.toThrow();
+        });
+        it('should pass with empty note (if allowed by logic, assumed yes as min is not set)', () => {
+            expect(() => bookmarkSchema.updateBookmarkNoteSchema.parse({ note: '' })).not.toThrow();
+        });
+        test.each([
+            ['too long note (>500 chars)', { note: 'a'.repeat(501) }],
+            ['non-string note', { note: 123 }]
+        ])('should fail with %s', (_, invalidData) => {
+            expect(() => bookmarkSchema.updateBookmarkNoteSchema.parse(invalidData)).toThrow();
+        });
+    });
+
+    describe('Quiz IDs Param Schema', () => {
+        const baseValidData = {
+            quizIds: [1, 2, 3]
+        };
+        it('should pass with valid data', () => {
+            expect(() => quizSchema.quizIdsParamSchema.parse(baseValidData)).not.toThrow();
+        });
+        test.each([
+            ['empty array', { quizIds: [] }],
+            ['array with > 100 items', { quizIds: new Array(101).fill(1) }],
+            ['array containing zero', { quizIds: [1, 0, 3] }],
+            ['array containing negative number', { quizIds: [1, -5, 3] }],
+            ['array containing float number', { quizIds: [1, 2.5, 3] }],
+            ['array containing string', { quizIds: [1, '2', 3] }],
+            ['not an array', { quizIds: '1,2,3' }]
+        ])('should fail with %s', (_, invalidData) => {
+            expect(() => quizSchema.quizIdsParamSchema.parse(invalidData)).toThrow();
         });
     });
 });

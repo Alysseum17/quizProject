@@ -4,13 +4,11 @@ import { protect } from "../controllers/authController.js";
 
 const router = express.Router({ mergeParams: true });
 
-
 router.use(protect);
 
-
-router.route("/:quizId").post(questionController.createQuestion);
-
 router.get("/stats", questionController.getQuestionStats);
+
+router.post("/", questionController.createQuestion);
 
 router
   .route("/:questionId")

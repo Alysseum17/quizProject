@@ -35,13 +35,13 @@ export const quizQuerySchema = zod.object({
 
 export const optionSchema = zod.object({
   answer_text: zod.string().min(1, "Option text is required"),
-  is_correct: zod.boolean().optional(),
+  is_correct: zod.boolean().default(false),
 });
 
 export const questionSchema = zod.object({
   question_text: zod.string().min(1, "Question text is required"),
   question_type: zod.enum(["single_choice", "multiple_choice", "free_text"]),
-  points: zod.coerce.number().int().min(1).optional(),
+  points: zod.coerce.number().int().min(1).default(1),
   options: zod.array(optionSchema).min(1, "At least one option is required"),
 });
 
@@ -80,4 +80,8 @@ export const quizAttemptSubmitSchema = zod.object({
       })
     )
     .min(1, "At least one answer is required"),
+});
+
+export const quizIdsParamSchema = zod.object({
+    quizIds: zod.array(zod.number().int().positive()).nonempty('At least one quiz ID must be provided').max(100, 'A maximum of 100 quiz IDs can be provided'),
 });

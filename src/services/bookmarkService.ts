@@ -176,7 +176,7 @@ export default class BookmarkService {
             GROUP BY q.quiz_id, q.title, u.username
             HAVING COUNT(b.user_id) > 0
             ORDER BY bookmark_count DESC
-            LIMIT ${Prisma.sql`${limit}`};
+            LIMIT ${limit};
         `;
     }
 

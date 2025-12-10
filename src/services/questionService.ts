@@ -17,6 +17,14 @@ interface updateQuestionInput {
   question_type?: "single_choice" | "multiple_choice" | "free_text";
   points?: number;
 }
+interface addAnswerOptionInput {
+  answer_text: string;
+  is_correct: boolean;
+}
+interface updateAnswerOptionInput {
+  answer_text?: string;
+  is_correct?: boolean;
+}
 
 export default class QuestionService {
   async createQuestion(
@@ -110,7 +118,7 @@ export default class QuestionService {
   async addAnswerOption(
     userId: number,
     questionId: number,
-    data: { answer_text: string; is_correct: boolean }
+    data: addAnswerOptionInput
   ) {
     return await prisma.$transaction(async (tx) => {
       const question = await tx.question.findUnique({
@@ -136,7 +144,7 @@ export default class QuestionService {
   async updateAnswerOption(
     userId: number,
     answerId: number,
-    data: { answer_text?: string; is_correct?: boolean }
+    data: updateAnswerOptionInput
   ) {
     return await prisma.$transaction(async (tx) => {
       await this.verifyAnswerOwnership(tx, answerId, userId);

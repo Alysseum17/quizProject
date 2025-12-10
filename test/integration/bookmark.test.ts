@@ -160,7 +160,7 @@ describe('Bookmark Integration Tests', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({ note: 12345 });
             expect(response.status).toBe(400);
-            expect(response.body.message).toMatch(/must be a string/i);
+            expect(response.body.message).toMatch(/Invalid input data/i);
         });
 
         it('PATCH /:id - should return 404 when updating a bookmark that does not exist', async () => {

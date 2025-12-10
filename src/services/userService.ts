@@ -185,8 +185,8 @@ export default class UserService {
             INNER JOIN "QuizAttempt" s ON u.user_id = s.user_id
             GROUP BY u.user_id, u.username
             ORDER BY average_score DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`}
+            LIMIT ${limit}
+            OFFSET ${offset}
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -218,8 +218,8 @@ export default class UserService {
             INNER JOIN "QuizAttempt" qa ON q.quiz_id = qa.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY total_attempts DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`}    
+            LIMIT ${limit}
+            OFFSET ${offset}
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -249,8 +249,8 @@ export default class UserService {
             INNER JOIN "Quiz" q ON u.user_id = q.author_id
             GROUP BY u.user_id, u.username
             ORDER BY total_quizzes DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`}
+            LIMIT ${limit}
+            OFFSET ${offset}
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -281,8 +281,8 @@ export default class UserService {
             INNER JOIN "Review" r ON q.quiz_id = r.quiz_id
             GROUP BY u.user_id, u.username
             ORDER BY average_rating DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`}
+            LIMIT ${limit}
+            OFFSET ${offset}
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -355,8 +355,8 @@ export default class UserService {
                 aqc.quiz_count > aqc2.avg_quiz_count
             ORDER BY 
                 aqc.quiz_count DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`};
+            LIMIT ${limit}
+            OFFSET ${offset};
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -379,6 +379,7 @@ export default class UserService {
             WITH UserAverageScores AS (
                         SELECT 
                             u.user_id,
+                            u.username,
                             AVG(qa.score) AS average_score
                         FROM 
                             "User" u
@@ -386,6 +387,7 @@ export default class UserService {
                             "QuizAttempt" qa ON u.user_id = qa.user_id
                         GROUP BY 
                             u.user_id
+                            u.username
                     ),
                     AverageOfAverages AS (
                         SELECT 
@@ -420,8 +422,8 @@ export default class UserService {
                 uas.average_score > aoa.avg_of_avg_scores
             ORDER BY 
                 uas.average_score DESC NULLS LAST
-            LIMIT ${Prisma.sql`${limit}`}
-            OFFSET ${Prisma.sql`${offset}`};
+            LIMIT ${limit}
+            OFFSET ${offset};
         `]);
         const totalCount = total[0]?.count ? Number(total[0].count) : 0;
         const totalPages = Math.ceil(totalCount / limit);
@@ -454,7 +456,7 @@ export default class UserService {
                 ORDER BY started_at DESC 
                 LIMIT 1)::int AS last_score
             FROM "QuizAttempt" qa
-            WHERE qa.user_id = ${Prisma.sql`${userId}`} AND qa.quiz_id = ${Prisma.sql`${quizId}`}
+            WHERE qa.user_id = ${userId} AND qa.quiz_id = ${quizId}
             GROUP BY qa.user_id, qa.quiz_id;
 `
     }

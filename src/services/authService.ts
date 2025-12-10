@@ -123,7 +123,7 @@ export default class AuthService {
         });
     }
     async resetPassword(data: ResetPasswordData, token: string) {
-        const { password} = data;
+        const { password } = data;
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         const user = await prisma.user.findFirst({
             where: {
