@@ -616,7 +616,7 @@ Indexes on foreign key columns for JOIN performance:
 ---
 
 ### 4. Nullable Time/Attempt Limits
-**Decision:** Allow `NULL` for `Quiz.time_limit` and `attempt_limit`.
+**Decision:** Allow `NULL` for `Quiz` `time_limit` and `attempt_limit`.
 
 **Pros:**
 - Flexibility (unlimited time/attempts)
@@ -685,9 +685,10 @@ CHECK ("score" >= 0 AND "score" <= 100);
 ```
 
 ### UNIQUE Constraints
-- `User.username` - No duplicate usernames
-- `User.email` - No duplicate emails
-- `Review(user_id, quiz_id)` - One review per user per quiz
+- `User` `username` - No duplicate usernames
+- `User` `email` - No duplicate emails
+- `Review` `(user_id, quiz_id)` - One review per user per quiz
+- `Bookmark` `(user_id, quiz_id)` - One bookmark per user per quiz
 
 ---
 
