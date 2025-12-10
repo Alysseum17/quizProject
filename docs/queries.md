@@ -819,33 +819,6 @@ const [userStats, ratingStats] = await Promise.all([
         }
     }),
     prisma.review.aggregate({
-# Complex SQL Queries Documentation - Part 2
-
-## 13. User Profile with Aggregated Statistics
-
-**Business Question:**  
-Get comprehensive user profile with aggregated quiz creation and attempt statistics.
-
-**Location:** `src/services/userService.ts` → `getUserWithDetails()`
-
-**Prisma ORM Implementation:**
-```typescript
-const [userStats, ratingStats] = await Promise.all([
-    prisma.user.findUnique({
-        where: { id: userId, is_active: true },
-        select: {
-            id: true,
-            username: true,
-            email: true,
-            _count: {
-                select: {
-                    quizzes: true,
-                    quiz_attempts: true
-                }
-            }
-        }
-    }),
-    prisma.review.aggregate({
         _avg: {
             rating: true
         },
