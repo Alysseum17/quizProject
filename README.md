@@ -59,30 +59,30 @@ cd quizProject
 
 ### Step 2: Configure Environment Variables
 
-1.  Copy the example configuration file:
+**1. Copy the example configuration file:
 
-    ```bash
-    cp .env.example .env
-    ```
+ ```bash
+ cp .env.example .env
+ ```
 
-2.  Edit `.env` file:
+**2. Edit `.env` file:
 
-      - Generate a secure `JWT_SECRET` (min 32 chars):
-        ```bash
-        openssl rand -base64 32
-        ```
-      - Configure EMAIL service (Mailtrap recommended for development).
+- Generate a secure `JWT_SECRET` (min 32 chars):
+  ```bash
+  openssl rand -base64 32
+  ```
+- Configure EMAIL service (Mailtrap recommended for development).
 
-3.  **Database Connection:**
+**3. **Database Connection:**
 
-      - **For Docker (Recommended):** Use service name `postgres`.
-        ```env
-        DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public"
-        ```
-      - **For Local Development:** Use `localhost`.
-        ```env
-        DATABASE_URL="postgresql://quizuser:change_me@localhost:5432/quizdb?schema=public"
-        ```
+**For Docker (Recommended):** Use service name `postgres`.
+```env
+DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public"
+```
+- **For Local Development:** Use `localhost`.
+```env
+DATABASE_URL="postgresql://quizuser:change_me@localhost:5432/quizdb?schema=public"
+```
 
 ### Step 3: Run with Docker (Recommended)
 
