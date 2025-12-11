@@ -41,133 +41,151 @@ The system includes **9 main tables** connected to each other:
 
 **Detailed schema documentation:** [`docs/schema.md`](docs/schema.md)
 
----
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker Desktop installed and running
-- Git
-- Node.js 20+ (for local development)
+- **Docker Desktop** & **Docker Compose** installed
+- **Git**
+- **Node.js 20+** (only required for local non-Docker development)
 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/quizProject.git
+git clone [https://github.com/your-username/quizProject.git](https://github.com/your-username/quizProject.git)
 cd quizProject
-```
+````
 
 ### Step 2: Configure Environment Variables
 
-```bash
-# Create .env file from example
-cp .env.example .env
+**1. Copy the example configuration file:**
 
-# Edit .env file:
-# 1. Generate JWT_SECRET (minimum 32 characters)
-openssl rand -base64 32
+ ```bash
+ cp .env.example .env
+ ```
 
-# 2. Configure EMAIL service (Mailtrap recommended for development)
-# 3. Change DATABASE_URL if needed
+**2. Edit `.env` file:**
+
+- Generate a secure `JWT_SECRET` (min 32 chars):
+  ```bash
+  openssl rand -base64 32
+  ```
+- Configure EMAIL service (Mailtrap recommended for development).
+
+**3. Database Connection:**
+
+- **For Docker (Recommended):** Use service name `postgres`.
+```env
+DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public"
 ```
-
-**Important:** For local development use `localhost` in `DATABASE_URL`:
+- **For Local Development:** Use `localhost`.
 ```env
 DATABASE_URL="postgresql://quizuser:change_me@localhost:5432/quizdb?schema=public"
 ```
 
-For Docker use service name `postgres`:
-```env
-DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public"
-```
-
 ### Step 3: Run with Docker (Recommended)
 
+We use `npm` scripts to simplify Docker commands.
+
+**1. Build and Start:**
+
 ```bash
-# Start in development mode (dev)
-docker-compose --profile dev up -d
-
-# Check container status
-docker-compose ps
-
-# View logs
-docker-compose logs -f app_dev
+npm run docker:build   # Builds the image (no cache)
+npm run docker:dev     # Starts app, db & pgadmin in background
 ```
 
-Application will be available at `http://localhost:3000`
+**2. Manage the App:**
 
-**Optional:** Load demo data:
 ```bash
-docker-compose --profile dev exec app_dev npx prisma db seed
+npm run docker:logs    # View live server logs
+npm run docker:seed    # (Optional) Load demo data into DB
+npm run docker:down    # Stop and remove containers
 ```
+
+> **🐧 Linux/Fedora Users:**
+> If you encounter permission errors (EACCES), run commands passing your user ID:
+>
+> ```bash
+> HOST_UID=$(id -u) HOST_GID=$(id -g) npm run docker:dev
+> ```
+
+**Access the Application:**
+
+  - **API Server:** `http://localhost:3000` (or the port defined in `.env`)
+  - **pgAdmin (Database UI):** `http://localhost:5050`
+      - *Email:* `admin@quiz.com` (define in .env)
+      - *Password:* `admin123` (define in .env)
 
 ### Step 4: Local Development (Without Docker)
 
+Use this method if you want to run Node.js locally but keep the database in Docker.
+
 ```bash
-# 1. Start only database in Docker
-docker-compose up -d postgres
+# 1. Start only the database container
+npm run start:db
 
 # 2. Install dependencies
 npm install
 
-# 3. Apply migrations
+# 3. Setup Database
 npx prisma migrate deploy
-
-# 4. Generate Prisma Client
 npx prisma generate
+npx prisma db seed  # (Optional)
 
-# 5. Start application
-npm run dev
+# 4. Start Application
+npm run start:dev
 ```
 
----
+-----
 
 ## 🧪 Running Tests
 
-### All Tests
+### Automated Testing (In Docker)
+
+Run all tests in an isolated Docker environment (recommended for CI/CD consistency).
 
 ```bash
-# Locally
-npm test
+# Rebuild test environment and run tests once
+npm run docker:test:build 
 
-# In Docker
-docker-compose -f docker-compose.test.yml --env-file .env.test up --abort-on-container-exit
+# Run tests in existing container
+npm run docker:test 
 ```
 
-### Specific Test Categories
+### Local Testing
+
+Run tests using your local Node.js environment.
+
+**1. Setup Test Database:**
 
 ```bash
-# Integration tests
-npm run test:integration
-
-# Unit tests
-npm run test:unit
-
-# Code coverage
-npm run test:coverage
-
-# Watch mode (during development)
-npm run test:watch
-```
-
-### Test Environment Setup
-
-```bash
-# Create .env.test
+# Create test env file
 cp .env.test.example .env.test
 
-# Start test database
+# Start test DB container
 npm run test:db:up
 
-# Apply migrations for tests
+# Run migrations for test DB
 npm run test:migrate
-
-# Stop test database
-npm run test:db:down
 ```
 
----
+**2. Run Tests:**
+
+```bash
+npm test                  # Run all tests
+npm run test:integration  # Run integration tests only
+npm run test:unit         # Run unit tests only
+npm run test:watch        # Watch mode (great for dev)
+npm run test:coverage     # Generate coverage report
+```
+
+**3. Cleanup:**
+
+```bash
+npm run test:db:down  # Stop test DB
+
+```
 
 ## 📁 Project Structure
 
@@ -208,6 +226,7 @@ quizProject/
 │   │   ├── quiz.schema.ts
 │   │   ├── question.schema.ts
 │   │   ├── review.schema.ts
+│   │   ├── bookmark.schema.ts
 │   │   └── user.schema.ts
 │   │
 │   ├── utils/            # Utilities
@@ -582,3 +601,9 @@ ISC
 ---
 
 **Last Updated:** December 10, 2024
+
+
+
+
+
+
