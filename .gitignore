@@ -2,7 +2,8 @@ node_modules
 
 /generated/prisma
 
-dist    
+dist
+coverage    
 .env
 .env.test
 .env.test.docker

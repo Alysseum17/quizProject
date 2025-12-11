@@ -21,13 +21,15 @@
   "build": "tsc",
   "dev": "nodemon --exec tsx src/server.ts",
   "start": "node dist/server.js",
+  "start:db": "docker compose up -d --profile dev postgres",
   "start:dev": "nodemon --exec tsx src/server.ts",
-  "docker:build": "docker-compose --profile dev build --no-cache",
-  "docker:dev": "docker-compose --profile dev up -d",
-  "docker:down": "docker-compose --profile dev down -v",
-  "docker:seed": "docker-compose --profile dev exec app_dev npx prisma db seed",
-  "test:db:up": "docker-compose -f docker-compose.test.yml --env-file .env.test up -d postgres_test",
-  "test:db:down": "docker-compose -f docker-compose.test.yml --env-file .env.test down -v",
+  "docker:build": "docker compose --profile dev build --no-cache",
+  "docker:dev": "docker compose --profile dev up -d",
+  "docker:down": "docker compose --profile dev down -v",
+  "docker:seed": "docker compose --profile dev exec app_dev npx prisma db seed",
+  "docker:logs": "docker compose --profile dev logs -f",
+  "test:db:up": "docker compose -f docker-compose.test.yml --env-file .env.test up -d postgres_test",
+  "test:db:down": "docker compose -f docker-compose.test.yml --env-file .env.test down -v",
   "test:migrate": "dotenv -e .env.test -- npx prisma migrate deploy",
   "test": "dotenv -e .env.test -- jest --runInBand",
   "test:unit": "dotenv -e .env.test -- jest --testPathPatterns=unit --runInBand",
@@ -35,9 +37,9 @@
   "test:watch": "dotenv -e .env.test -- jest --watch",
   "test:coverage": "dotenv -e .env.test -- jest --coverage --runInBand",
     
-  "docker:test": "docker-compose -f docker-compose.test.yml --env-file .env.test up --abort-on-container-exit --exit-code-from app_test",
-  "docker:test:build": "docker-compose -f docker-compose.test.yml --env-file .env.test up --build --abort-on-container-exit --exit-code-from app_test",
-  "docker:test:down": "docker-compose -f docker-compose.test.yml --env-file .env.test down -v"
+  "docker:test": "docker compose -f docker-compose.test.yml --env-file .env.test up --abort-on-container-exit --exit-code-from app_test",
+  "docker:test:build": "docker compose -f docker-compose.test.yml --env-file .env.test up --build --abort-on-container-exit --exit-code-from app_test",
+  "docker:test:down": "docker compose -f docker-compose.test.yml --env-file .env.test down -v"
 
 },
   "devDependencies": {
