@@ -131,11 +131,10 @@ npx prisma db seed
 
 ### Automated Testing (Docker)
 
-```bash
-
-# In Docker
+### In Docker
 Run all tests in an isolated Docker environment (recommended for CI/CD consistency).
 
+```bash
 # Rebuild test environment and run
 npm run docker:test:build 
 
@@ -588,5 +587,6 @@ ISC
 ---
 
 **Last Updated:** December 10, 2024
+
 
 
