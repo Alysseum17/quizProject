@@ -21,7 +21,7 @@
   "build": "tsc",
   "dev": "nodemon --exec tsx src/server.ts",
   "start": "node dist/server.js",
-  "start:db": "docker compose up -d --profile dev postgres",
+  "start:db": "docker compose up -d postgres",
   "start:dev": "nodemon --exec tsx src/server.ts",
   "docker:build": "docker compose --profile dev build --no-cache",
   "docker:dev": "docker compose --profile dev up -d",
