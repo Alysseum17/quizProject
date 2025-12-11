@@ -85,28 +85,29 @@ DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public
 ### Step 3: Run with Docker (Recommended)
 
 ```bash
-# Start in development mode (dev)
-docker-compose --profile dev up -d
+# 1. Build and Start the App:
+
+npm run docker:build   # Builds the image (no cache)
+npm run docker:dev     # Starts app & db in background
+
+# 2. Manage the App:
+
+npm run docker:logs    # View live server logs
+npm run docker:seed    # (Optional) Load demo data into DB
+npm run docker:down    # Stop and remove containers
 
 # Check container status
-docker-compose ps
+docker compose ps 
 
-# View logs
-docker-compose logs -f app_dev
 ```
 
 Application will be available at `http://localhost:3000`
-
-**Optional:** Load demo data:
-```bash
-docker-compose --profile dev exec app_dev npx prisma db seed
-```
 
 ### Step 4: Local Development (Without Docker)
 
 ```bash
 # 1. Start only database in Docker
-docker-compose up -d postgres
+npm run start:db
 
 # 2. Install dependencies
 npm install
@@ -118,56 +119,60 @@ npx prisma migrate deploy
 npx prisma generate
 
 # 5. Start application
-npm run dev
+npm run start:dev
+
+# Optional. Seed data
+npx prisma db seed 
 ```
 
 ---
 
 ## 🧪 Running Tests
 
-### All Tests
+### Automated Testing (Docker)
 
 ```bash
-# Locally
-npm test
 
 # In Docker
-docker-compose -f docker-compose.test.yml --env-file .env.test up --abort-on-container-exit
+Run all tests in an isolated Docker environment (recommended for CI/CD consistency).
+
+# Rebuild test environment and run
+npm run docker:test:build 
+
+# Run all tests and exit
+npm run docker:test 
 ```
 
-### Specific Test Categories
+### Local Testing
 
 ```bash
-# Integration tests
-npm run test:integration
+Run tests using your local Node.js environment.
 
-# Unit tests
-npm run test:unit
+#1. Setup Test Database:
 
-# Code coverage
-npm run test:coverage
-
-# Watch mode (during development)
-npm run test:watch
-```
-
-### Test Environment Setup
-
-```bash
-# Create .env.test
+# Create test env file
 cp .env.test.example .env.test
 
-# Start test database
+# Start test DB container
 npm run test:db:up
 
-# Apply migrations for tests
+# Run migrations for test DB
 npm run test:migrate
 
-# Stop test database
-npm run test:db:down
+# 2. Run Tests:
+
+npm run test              # Run all tests
+npm run test:integration  # Run integration tests
+npm run test:unit         # Run unit tests
+npm run test:watch        # Watch mode (great for dev)
+npm run test:coverage     # Generate coverage report
+
+# 3. Cleanup:
+
+npm run test:db:down  # Stop test DB
+
 ```
 
----
 
 ## 📁 Project Structure
 
@@ -583,4 +588,5 @@ ISC
 ---
 
 **Last Updated:** December 10, 2024
+
 
