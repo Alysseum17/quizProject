@@ -75,7 +75,7 @@ cd quizProject
 
 **3. Database Connection:**
 
-**For Docker (Recommended):** Use service name `postgres`.
+- **For Docker (Recommended):** Use service name `postgres`.
 ```env
 DATABASE_URL="postgresql://quizuser:change_me@postgres:5432/quizdb?schema=public"
 ```
@@ -601,6 +601,7 @@ ISC
 ---
 
 **Last Updated:** December 10, 2024
+
 
 
 
